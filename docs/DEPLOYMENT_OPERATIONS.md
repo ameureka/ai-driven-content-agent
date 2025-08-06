@@ -1,0 +1,660 @@
+# AI驱动内容代理 - 部署与运维完整指南
+
+## 📋 目录
+
+1. [配置文件说明](#配置文件说明)
+2. [环境配置](#环境配置)
+3. [开发环境设置](#开发环境设置)
+4. [生产环境部署](#生产环境部署)
+5. [运维管理](#运维管理)
+6. [故障排除](#故障排除)
+7. [最佳实践](#最佳实践)
+
+## 📁 配置文件说明
+
+### 核心配置文件
+
+#### 1. `wrangler.toml` - Cloudflare Workers 主配置
+
+**作用**: Cloudflare Workers 的核心配置文件，定义了 Worker 的部署参数、资源绑定和环境设置。
+
+**主要配置项**:
+```toml
+name = "my-markdown-renderer"          # Worker 名称
+main = "src/index.js"                  # 入口文件
+compatibility_date = "2024-10-30"      # 兼容性日期
+compatibility_flags = ["nodejs_compat"] # Node.js 兼容性
+
+# KV 存储绑定
+[[kv_namespaces]]
+binding = "MARKDOWN_KV"                # 代码中的绑定名
+id = "e8212bb5681840a3a44e1bfff52fd505" # 生产环境 KV ID
+preview_id = "ed67abba3b504765839b8c7391fe4e5c" # 预览环境 KV ID
+
+# R2 存储绑定
+[[r2_buckets]]
+binding = "ASSETS"                     # 静态资源绑定
+bucket_name = "markdown-renderer-assets-new" # 存储桶名称
+```
+
+#### 2. `.dev.vars` - 开发环境变量
+
+**作用**: 存储开发环境的敏感配置信息，不会被提交到版本控制。
+
+**配置内容**:
+```bash
+API_KEY=test_key_for_local_dev         # 本地开发 API 密钥
+DIFY_API_KEY=app-psBss3DfbuPfQWGjJ6gN5gPA # Dify AI 平台密钥
+DIFY_ARTICLE_API_KEY=app-hOoVra3daEZRpbDNmLkVEhQp # Dify 文章生成密钥
+```
+
+#### 3. `package.json` - 项目依赖和脚本
+
+**作用**: 定义项目依赖、构建脚本和元数据信息。
+
+**关键脚本**:
+```json
+{
+  "scripts": {
+    "deploy": "wrangler deploy",        # 部署到生产环境
+    "dev": "wrangler dev",             # 启动开发服务器
+    "start": "wrangler dev",           # 启动服务（别名）
+    "test": "vitest",                  # 运行测试
+    "build": "esbuild src/index.js..." # 构建项目
+  }
+}
+```
+
+### 开发工具配置
+
+#### 4. `vitest.config.js` - 测试配置
+
+**作用**: 配置 Vitest 测试框架，支持 Cloudflare Workers 环境测试。
+
+#### 5. `.editorconfig` - 编辑器配置
+
+**作用**: 统一不同编辑器的代码格式设置。
+
+**配置要点**:
+- 使用 Tab 缩进
+- UTF-8 编码
+- LF 换行符
+- YAML 文件使用空格缩进
+
+#### 6. `.prettierrc` - 代码格式化
+
+**作用**: 定义代码自动格式化规则。
+
+**配置参数**:
+```json
+{
+  "printWidth": 140,     # 行宽限制
+  "singleQuote": true,   # 使用单引号
+  "semi": true,          # 添加分号
+  "useTabs": true        # 使用 Tab 缩进
+}
+```
+
+#### 7. `.gitignore` - 版本控制忽略
+
+**作用**: 指定不需要版本控制的文件和目录。
+
+**主要忽略项**:
+- `node_modules/` - 依赖包
+- `.dev.vars` - 开发环境变量
+- `dist/` - 构建输出
+- 日志文件和临时文件
+
+#### 8. `deploy.sh` - 部署脚本
+
+**作用**: 自动化部署流程，包括静态资源上传和 Worker 部署。
+
+## ⚙️ 环境配置
+
+### 前置要求
+
+1. **Node.js 环境**
+   ```bash
+   # 安装 Node.js 16.x 或更高版本
+   node --version  # 检查版本
+   npm --version   # 检查 npm 版本
+   ```
+
+2. **Cloudflare 账户**
+   - 注册 [Cloudflare 账户](https://cloudflare.com/)
+   - 获取 Account ID 和 API Token
+
+3. **Dify 平台账户**
+   - 注册 [Dify 账户](https://dify.ai/)
+   - 创建应用并获取 API 密钥
+
+### 工具安装
+
+```bash
+# 全局安装 Wrangler CLI
+npm install -g wrangler
+
+# 验证安装
+wrangler --version
+
+# 登录 Cloudflare
+wrangler login
+```
+
+## 🛠️ 开发环境设置
+
+### 1. 项目初始化
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd ai_driven_content_agent
+
+# 安装依赖
+npm install
+```
+
+### 2. 环境变量配置
+
+创建 `.dev.vars` 文件：
+```bash
+# 复制示例文件
+cp .dev.vars.example .dev.vars
+
+# 编辑配置
+vim .dev.vars
+```
+
+配置内容：
+```bash
+# 本地开发 API 密钥
+API_KEY=your_local_test_key
+
+# Dify AI 平台配置
+DIFY_API_KEY=your_dify_api_key
+DIFY_ARTICLE_API_KEY=your_dify_article_api_key
+DIFY_BASE_URL=https://api.dify.ai
+
+# 可选：调试模式
+DEBUG=true
+ENVIRONMENT=development
+```
+
+### 3. KV 命名空间创建
+
+```bash
+# 创建开发环境 KV 命名空间
+wrangler kv:namespace create "MARKDOWN_KV" --preview
+
+# 记录返回的 preview_id，更新到 wrangler.toml
+```
+
+### 4. R2 存储桶设置
+
+```bash
+# 创建开发环境存储桶
+wrangler r2 bucket create markdown-renderer-assets-dev
+
+# 上传静态资源
+wrangler r2 object put markdown-renderer-assets-dev/index.html --file ./public/index.html
+wrangler r2 object put markdown-renderer-assets-dev/styles.css --file ./public/styles.css
+wrangler r2 object put markdown-renderer-assets-dev/script.js --file ./public/script.js
+```
+
+### 5. 启动开发服务器
+
+```bash
+# 启动本地开发服务器
+npm run dev
+
+# 或使用 wrangler 直接启动
+wrangler dev
+
+# 指定端口启动
+wrangler dev --port 8787
+```
+
+### 6. 开发环境测试
+
+```bash
+# 运行单元测试
+npm test
+
+# 运行 API 测试
+node testapi/frontend_api_test.js
+
+# 测试 Dify 集成
+node testapi/temp_test_dify.js
+```
+
+## 🚀 生产环境部署
+
+### 1. 生产环境准备
+
+#### 创建生产资源
+
+```bash
+# 创建生产环境 KV 命名空间
+wrangler kv:namespace create "MARKDOWN_KV"
+
+# 创建生产环境 R2 存储桶
+wrangler r2 bucket create markdown-renderer-assets-new
+```
+
+#### 更新 wrangler.toml
+
+```toml
+[[kv_namespaces]]
+binding = "MARKDOWN_KV"
+id = "your_production_kv_id"        # 替换为实际的生产环境 ID
+preview_id = "your_preview_kv_id"   # 替换为实际的预览环境 ID
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "markdown-renderer-assets-new"
+preview_bucket_name = "markdown-renderer-assets-dev"
+```
+
+### 2. 环境变量设置
+
+```bash
+# 设置生产环境密钥
+wrangler secret put API_KEY
+# 输入: your_production_api_key
+
+wrangler secret put DIFY_API_KEY
+# 输入: your_production_dify_key
+
+wrangler secret put DIFY_ARTICLE_API_KEY
+# 输入: your_production_dify_article_key
+
+wrangler secret put DIFY_BASE_URL
+# 输入: https://api.dify.ai
+```
+
+### 3. 静态资源部署
+
+```bash
+# 使用部署脚本
+./deploy.sh
+
+# 或手动上传
+wrangler r2 object put markdown-renderer-assets-new/index.html --file ./public/index.html --content-type "text/html"
+wrangler r2 object put markdown-renderer-assets-new/styles.css --file ./public/styles.css --content-type "text/css"
+wrangler r2 object put markdown-renderer-assets-new/script.js --file ./public/script.js --content-type "application/javascript"
+```
+
+### 4. Worker 部署
+
+```bash
+# 部署到生产环境
+npm run deploy
+
+# 或使用 wrangler 直接部署
+wrangler deploy
+
+# 部署到特定环境
+wrangler deploy --env production
+```
+
+### 5. 部署验证
+
+```bash
+# 检查部署状态
+wrangler deployments list
+
+# 测试生产环境
+curl https://my-markdown-renderer.your-subdomain.workers.dev/api/status
+
+# 查看实时日志
+wrangler tail
+```
+
+## 🔧 运维管理
+
+### 监控和日志
+
+#### 实时日志监控
+
+```bash
+# 查看实时日志
+wrangler tail
+
+# 过滤错误日志
+wrangler tail --format pretty | grep ERROR
+
+# 查看特定时间段日志
+wrangler tail --since 1h
+
+# 保存日志到文件
+wrangler tail > logs/$(date +%Y%m%d_%H%M%S).log
+```
+
+#### 性能监控
+
+```bash
+# 查看 Worker 分析数据
+wrangler analytics
+
+# 查看 KV 使用情况
+wrangler kv:namespace list
+
+# 查看 R2 存储使用
+wrangler r2 bucket list
+```
+
+### 数据管理
+
+#### KV 存储操作
+
+```bash
+# 列出所有键
+wrangler kv:key list --binding MARKDOWN_KV
+
+# 获取特定键值
+wrangler kv:key get "key_name" --binding MARKDOWN_KV
+
+# 设置键值
+wrangler kv:key put "key_name" "value" --binding MARKDOWN_KV
+
+# 删除键
+wrangler kv:key delete "key_name" --binding MARKDOWN_KV
+
+# 批量导入数据
+wrangler kv:bulk put data.json --binding MARKDOWN_KV
+```
+
+#### 数据备份
+
+```bash
+#!/bin/bash
+# backup_kv.sh - KV 数据备份脚本
+
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="backups/kv_$DATE"
+
+mkdir -p $BACKUP_DIR
+
+# 导出所有 KV 数据
+wrangler kv:key list --binding MARKDOWN_KV --format json > $BACKUP_DIR/keys.json
+
+echo "KV 数据备份完成: $BACKUP_DIR"
+```
+
+### 环境管理
+
+#### 多环境配置
+
+创建 `wrangler.toml` 的环境配置：
+
+```toml
+# 基础配置
+name = "ai-content-agent"
+main = "src/index.js"
+
+# 开发环境
+[env.development]
+name = "ai-content-agent-dev"
+[[env.development.kv_namespaces]]
+binding = "MARKDOWN_KV"
+id = "dev_kv_namespace_id"
+
+# 预发布环境
+[env.staging]
+name = "ai-content-agent-staging"
+[[env.staging.kv_namespaces]]
+binding = "MARKDOWN_KV"
+id = "staging_kv_namespace_id"
+
+# 生产环境
+[env.production]
+name = "ai-content-agent-prod"
+[[env.production.kv_namespaces]]
+binding = "MARKDOWN_KV"
+id = "prod_kv_namespace_id"
+```
+
+#### 环境部署
+
+```bash
+# 部署到开发环境
+wrangler deploy --env development
+
+# 部署到预发布环境
+wrangler deploy --env staging
+
+# 部署到生产环境
+wrangler deploy --env production
+```
+
+### 安全管理
+
+#### 密钥轮换
+
+```bash
+# 定期轮换 API 密钥
+wrangler secret put API_KEY --env production
+
+# 查看当前密钥列表
+wrangler secret list
+
+# 删除旧密钥（谨慎操作）
+wrangler secret delete OLD_KEY_NAME
+```
+
+#### 访问控制
+
+```bash
+# 设置 IP 白名单（在 Worker 代码中实现）
+# 配置 CORS 策略
+# 实施请求频率限制
+```
+
+## 🚨 故障排除
+
+### 常见问题
+
+#### 1. 部署失败
+
+**问题**: `Error: A request to the Cloudflare API failed`
+
+**解决方案**:
+```bash
+# 检查登录状态
+wrangler whoami
+
+# 重新登录
+wrangler logout
+wrangler login
+
+# 检查 wrangler.toml 配置
+wrangler config
+```
+
+#### 2. KV 存储错误
+
+**问题**: `KV namespace not found`
+
+**解决方案**:
+```bash
+# 检查 KV 命名空间
+wrangler kv:namespace list
+
+# 重新创建命名空间
+wrangler kv:namespace create "MARKDOWN_KV"
+
+# 更新 wrangler.toml 中的 ID
+```
+
+#### 3. 静态资源加载失败
+
+**问题**: 前端页面无法加载
+
+**解决方案**:
+```bash
+# 检查 R2 存储桶
+wrangler r2 bucket list
+
+# 重新上传静态资源
+./deploy.sh
+
+# 检查文件权限
+wrangler r2 object get markdown-renderer-assets-new/index.html
+```
+
+#### 4. Dify API 调用失败
+
+**问题**: AI 功能无响应
+
+**解决方案**:
+```bash
+# 检查 API 密钥
+wrangler secret list
+
+# 测试 API 连接
+curl -H "Authorization: Bearer $DIFY_API_KEY" https://api.dify.ai/v1/chat-messages
+
+# 查看错误日志
+wrangler tail | grep "dify"
+```
+
+### 调试技巧
+
+#### 本地调试
+
+```bash
+# 启用详细日志
+wrangler dev --log-level debug
+
+# 使用调试模式
+DEBUG=true wrangler dev
+
+# 检查环境变量
+wrangler dev --var DEBUG=true
+```
+
+#### 远程调试
+
+```bash
+# 查看 Worker 执行日志
+wrangler tail --format pretty
+
+# 监控特定请求
+wrangler tail --search "POST /api/render"
+
+# 性能分析
+wrangler analytics --since 1h
+```
+
+## 📋 最佳实践
+
+### 开发流程
+
+1. **版本控制**
+   - 使用 Git 进行版本管理
+   - 创建功能分支进行开发
+   - 提交前运行测试
+
+2. **代码质量**
+   - 使用 ESLint 进行代码检查
+   - 配置 Prettier 自动格式化
+   - 编写单元测试和集成测试
+
+3. **环境隔离**
+   - 开发、预发布、生产环境分离
+   - 使用不同的 KV 命名空间和 R2 存储桶
+   - 独立的 API 密钥管理
+
+### 部署策略
+
+1. **渐进式部署**
+   ```bash
+   # 先部署到预发布环境
+   wrangler deploy --env staging
+   
+   # 验证功能正常后部署到生产
+   wrangler deploy --env production
+   ```
+
+2. **回滚机制**
+   ```bash
+   # 查看部署历史
+   wrangler deployments list
+   
+   # 回滚到上一个版本
+   wrangler rollback [deployment-id]
+   ```
+
+3. **蓝绿部署**
+   - 使用不同的 Worker 名称
+   - 通过 DNS 切换流量
+   - 确保零停机部署
+
+### 监控告警
+
+1. **健康检查**
+   ```bash
+   # 创建健康检查脚本
+   #!/bin/bash
+   # health_check.sh
+   
+   ENDPOINT="https://your-worker.workers.dev/api/status"
+   RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $ENDPOINT)
+   
+   if [ $RESPONSE -eq 200 ]; then
+       echo "✅ 服务正常"
+   else
+       echo "❌ 服务异常: HTTP $RESPONSE"
+       # 发送告警通知
+   fi
+   ```
+
+2. **性能监控**
+   - 设置响应时间阈值
+   - 监控错误率
+   - 跟踪资源使用情况
+
+3. **日志分析**
+   - 定期分析访问日志
+   - 识别异常访问模式
+   - 优化性能瓶颈
+
+### 安全建议
+
+1. **密钥管理**
+   - 定期轮换 API 密钥
+   - 使用最小权限原则
+   - 避免在代码中硬编码密钥
+
+2. **访问控制**
+   - 实施 IP 白名单
+   - 配置请求频率限制
+   - 启用 HTTPS 强制加密
+
+3. **数据保护**
+   - 定期备份重要数据
+   - 加密敏感信息
+   - 实施数据清理策略
+
+## 📞 支持和联系
+
+如果在部署或运维过程中遇到问题：
+
+1. **查看文档**
+   - [Cloudflare Workers 文档](https://developers.cloudflare.com/workers/)
+   - [Wrangler CLI 文档](https://developers.cloudflare.com/workers/wrangler/)
+   - [项目 API 文档](./API.md)
+
+2. **社区支持**
+   - [Cloudflare 社区](https://community.cloudflare.com/)
+   - [GitHub Issues](https://github.com/your-repo/issues)
+
+3. **技术支持**
+   - 邮箱: support@your-domain.com
+   - 企业支持: enterprise@your-domain.com
+
+---
+
+**最后更新**: 2024年1月15日  
+**文档版本**: 1.0.0  
+**适用版本**: AI驱动内容代理 v1.0.0+
