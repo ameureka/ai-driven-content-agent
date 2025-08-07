@@ -2,8 +2,8 @@
 API_KEY=aiwenchuang
 
 # Dify AI 平台配置
-DIFY_API_KEY=app-psBss3DfbuPfQWGjJ6XXXX
-DIFY_ARTICLE_API_KEY=app-hOoVra3daEZRpbDNmLkVEhQp
+DIFY_API_KEY=app-psBss3DfbuPfQWGxxxx
+DIFY_ARTICLE_API_KEY=app-hOoVra3daEZxxxx
 DIFY_BASE_URL=https://api.dify.ai
 
 # 可选：调试模式

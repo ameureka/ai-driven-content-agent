@@ -12,7 +12,7 @@ compatibility_flags = ["nodejs_compat"]
 # 在你的 Worker 代码中可以通过 `env.MARKDOWN_KV` 来访问它。
 [[kv_namespaces]]
 binding = "MARKDOWN_KV"
-id = "e8212bb5681840a3a44e1bfff52fd505"
+id = "354c4fd9feef47aeb5dd6f1885c164b3"
 preview_id = "e084f2191ffb4ac481f7113f5496fbd9"
 
 # --- 静态资源绑定 ---
