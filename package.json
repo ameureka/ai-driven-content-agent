@@ -1,6 +1,6 @@
 {
-	"name": "my-markdown-renderer",
-	"version": "0.1.0",
+	"name": "ai-driven-content-agent",
+	"version": "1.0.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -21,20 +21,31 @@
 		"marked": "^15.0.8",
 		"node-fetch": "^2.7.0"
 	},
-	"description": "**当前版本**: 0.8.1",
-	"main": "improve_dify_test.js",
+	"description": "一个基于Cloudflare Workers的智能内容代理服务，集成Dify AI平台，提供Markdown到HTML的智能转换和多样化模板渲染功能",
+	"main": "src/index.js",
 	"directories": {
-		"test": "tests"
+		"test": "test"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/ameureka/wecom_text_agent.git"
+		"url": "git+https://github.com/ameureka/ai-driven-content-agent.git"
 	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"keywords": [
+		"ai",
+		"content-generation",
+		"cloudflare-workers",
+		"dify",
+		"markdown",
+		"html",
+		"template-engine",
+		"wechat",
+		"automation",
+		"api"
+	],
+	"author": "AI Content Agent Team",
+	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/ameureka/wecom_text_agent/issues"
+		"url": "https://github.com/ameureka/ai-driven-content-agent/issues"
 	},
-	"homepage": "https://github.com/ameureka/wecom_text_agent#readme"
+	"homepage": "https://github.com/ameureka/ai-driven-content-agent#readme"
 }

@@ -13,571 +13,128 @@ const DIFY_API_URL = 'https://api.dify.ai/v1';
  * @param {number} maxRetries - 最大重试次数
  * @returns {Promise<Object>} 返回带cancel方法的对象，可取消生成
  */
-export async function callDifyArticleWorkflow(inputs, apiKey, callbacks = {}, maxRetries = 2) {
-  const { onStart, onProgress, onComplete, onError } = callbacks;
-  
-  // 验证输入参数
-  if (!inputs || !inputs.prompt) {
-    const error = new Error('缺少必要参数：prompt(标题)');
-    if (onError) onError(error);
-    return { cancel: () => {} };
-  }
-  
-  // 日志和回调辅助函数
-  const log = (message, data = null) => {
-    const logMsg = data ? `${message}: ${JSON.stringify(data).substring(0, 100)}${data.length > 100 ? '...' : ''}` : message;
-    console.log(logMsg);
-  };
-  
-  const notify = (status, data = {}) => {
-    if (onProgress) onProgress(status, data);
-  };
-  
-  // 重试逻辑
-  for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
-    try {
-      // 首次尝试或重试提示
-      if (retryCount === 0) {
-        if (onStart) onStart();
-        log(`开始调用Dify文章工作流生成: ${inputs.prompt}`);
-      } else {
-        log(`尝试第${retryCount}次重新连接...`);
-        notify(`尝试重新连接 (${retryCount}/${maxRetries})...`);
-      }
-      
-      // 1. 发起请求
-      const response = await fetch(`${DIFY_API_URL}/workflows/run`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          inputs,
-          response_mode: "streaming",
-          user: "markdown-renderer-user"
-        }),
-        signal: AbortSignal.timeout(300000) // 5分钟超时
-      });
-      
-      // 2. 处理错误响应
-      if (!response.ok) {
-        const errorText = await response.text();
-        log(`API响应错误 (${response.status}): ${errorText}`);
-        
-        // 处理网关超时错误 - 这类错误值得重试
-        if (response.status === 504 || response.status === 502) {
-          if (retryCount < maxRetries) {
-            const waitTime = 3000 * (retryCount + 1);
-            log(`网关错误，等待${waitTime/1000}秒后重试...`);
-            notify(`网关错误，等待${waitTime/1000}秒后重试...`);
-            await new Promise(r => setTimeout(r, waitTime));
-            continue;
-          }
-        }
-        
-        // 其他错误或重试次数用尽，回退到模拟数据
-        if (retryCount >= maxRetries) {
-          log(`经过${maxRetries}次尝试后仍然失败，使用模拟数据`);
-          notify(`无法连接到服务器，将使用本地生成的内容`);
-          return createMockResponse(inputs, callbacks);
-        }
-        continue;
-      }
-      
-      // 3. 开始处理流式响应
-      log("连接成功，开始接收流式响应...");
-      notify("连接成功，开始接收数据...");
-      
-      // 4. 设置流式解析的状态
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let resultContent = "";
-      let workflowRunId = "";
-      let nodeCount = 0;
-      
-      // 5. 读取和处理流式数据
+export function callDifyArticleWorkflow(inputs, apiKey, callbacks = {}, maxRetries = 2) {
+  return new Promise(async (resolve, reject) => {
+    const { onStart, onProgress, onComplete, onError } = callbacks;
+
+    // 日志和回调辅助函数
+    const log = (message, data = null) => {
+      const logMsg = data ? `${message}: ${JSON.stringify(data).substring(0, 100)}${data.length > 100 ? '...' : ''}` : message;
+      console.log(logMsg);
+    };
+
+    const notify = (status, data = {}) => {
+      if (onProgress) onProgress(status, data);
+    };
+
+    if (onStart) onStart();
+    log(`开始调用Dify文章工作流: ${inputs.title}`);
+
+    let streamTimeout;
+
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
+        clearTimeout(streamTimeout); // 清除上一轮的超时
+        streamTimeout = setTimeout(() => {
+          reject(new Error("Stream timed out after 60 seconds of inactivity."));
+        }, 60000); // 60秒无数据超时
+        const response = await fetch(`${DIFY_API_URL}/workflows/run`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            inputs,
+            response_mode: "streaming",
+            user: "markdown-renderer-user",
+          }),
+          signal: AbortSignal.timeout(300000), // 5分钟超时
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API响应错误 (${response.status}): ${errorText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalContent = "";
+        let lastDataTimestamp = Date.now();
+
         while (true) {
           const { done, value } = await reader.read();
-          
-          // 流读取完成
           if (done) {
-            log("流式响应结束（正常完成）");
-            if (onComplete) onComplete(resultContent);
-            break;
+            log("流读取完成");
+            clearTimeout(streamTimeout);
+            if (onComplete) onComplete(finalContent);
+            resolve(finalContent);
+            return;
           }
-          
-          // 处理新接收的数据
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          
-          // 处理每一行数据
-          for (const line of lines) {
-            if (!line.startsWith("data:")) continue;
-            
-            const data = line.slice(5).trim();
-            if (data === "[DONE]") {
-              log("收到流结束标记");
-              if (onComplete) onComplete(resultContent);
-              return { cancel: () => {} };
-            }
-            
-            try {
-              log("收到原始数据", { data: data.substring(0, 100) });
-              
-              // 1. 首先检查是否是直接的结果对象 {"result": "..."}
-              try {
-                const directResult = JSON.parse(data);
-                if (directResult && directResult.result && typeof directResult.result === 'string') {
-                  log("检测到直接结果格式", { previewLength: directResult.result.length });
-                  resultContent = directResult.result;
-                  
-                  // 通知进度
-                  notify('接收内容', { 
-                    content: resultContent,
-                    result: resultContent
-                  });
-                  
-                  // 完成处理
-                  if (onComplete) {
-                    log("工作流返回了完整结果，调用完成回调");
-                    onComplete(resultContent);
-                  }
-                  return { cancel: () => {} };
-                }
-              } catch (parseError) {
-                log("解析直接结果JSON失败", { error: parseError.message });
-                // 继续尝试解析为事件数据
-              }
-              
-              // 2. 解析事件数据
-              let parsedData;
-              let actualData;
-              
-              try {
-                parsedData = JSON.parse(data);
-                actualData = parsedData;
-                
-                // 检查是否有嵌套的data字段
-                if (parsedData.data && typeof parsedData.data === 'string') {
-                  try {
-                    // 尝试解析嵌套的JSON字符串
-                    const nestedData = JSON.parse(parsedData.data);
-                    log("解析内部嵌套数据", { event: nestedData.event || '无事件' });
-                    actualData = nestedData;
-                  } catch (innerError) {
-                    log("解析内部嵌套数据失败，使用原始数据", { error: innerError.message });
-                  }
-                }
-              } catch (parseError) {
-                log("解析事件JSON失败", { error: parseError.message });
-                continue;
-              }
 
-              // 提取内容的统一方法 - 增强版
-              const extractContent = (data) => {
-                // 尝试从各种可能的位置提取内容
-                if (!data) return null;
-                
-                // 1. 直接字段
-                for (const field of ['result', 'text', 'content', 'answer', 'output']) {
-                  if (data[field] && typeof data[field] === 'string') {
-                    log(`从字段[${field}]提取内容`);
-                    return data[field];
-                  }
+          clearTimeout(streamTimeout);
+          streamTimeout = setTimeout(() => {
+            reject(new Error("Stream timed out after 60 seconds of inactivity."));
+          }, 60000);
+
+          const chunk = decoder.decode(value, { stream: true });
+          log(`Received chunk`, chunk);
+          buffer += chunk;
+          let boundary;
+          while ((boundary = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.substring(0, boundary);
+            buffer = buffer.substring(boundary + 1);
+
+            if (!line.startsWith("data:")) continue;
+
+            const data = line.slice(5).trim();
+            log(`Received raw data: ${data}`); // 增加原始数据日志
+
+            if (data === "[DONE]") {
+              log("收到流结束标记 [DONE]");
+              clearTimeout(streamTimeout);
+              if (onComplete) onComplete(finalContent);
+              resolve(finalContent);
+              return;
+            }
+
+            try {
+              const parsedData = JSON.parse(data);
+              log("Parsed data:", parsedData);
+              if (parsedData.event === 'workflow_finished' || (parsedData.event === 'node_finished' && parsedData.data && parsedData.data.finish_reason === 'FinishReason.STOP')) {
+                log("工作流完成或最终节点结束", parsedData);
+                if (parsedData.data && parsedData.data.outputs && parsedData.data.outputs.text) {
+                  finalContent = parsedData.data.outputs.text;
                 }
-                
-                // 2. 嵌套在data字段中
-                if (data.data && typeof data.data === 'object') {
-                  for (const field of ['result', 'text', 'content', 'answer']) {
-                    if (data.data[field] && typeof data.data[field] === 'string') {
-                      log(`从data.${field}提取内容`);
-                      return data.data[field];
-                    }
-                  }
-                }
-                
-                // 3. 嵌套在outputs字段中 (workflow_finished和node_finished事件)
-                if (data.outputs) {
-                  // 如果outputs是字符串，尝试解析为JSON
-                  if (typeof data.outputs === 'string') {
-                    try {
-                      const outputsObj = JSON.parse(data.outputs);
-                      for (const field of ['result', 'text', 'content', 'output', 'answer']) {
-                        if (outputsObj[field] && typeof outputsObj[field] === 'string') {
-                          log(`从解析的outputs.${field}提取内容`);
-                          return outputsObj[field];
-                        }
-                      }
-                    } catch (e) {
-                      // 如果解析失败，直接返回outputs字符串
-                      return data.outputs;
-                    }
-                  } 
-                  // 如果outputs是对象，直接查找
-                  else if (typeof data.outputs === 'object') {
-                    for (const field of ['result', 'text', 'content', 'output', 'answer']) {
-                      if (data.outputs[field] && typeof data.outputs[field] === 'string') {
-                        log(`从outputs.${field}提取内容`);
-                        return data.outputs[field];
-                      }
-                    }
-                  }
-                }
-                
-                // 4. 嵌套在message字段中
-                if (data.message) {
-                  if (typeof data.message === 'string') {
-                    return data.message;
-                  } else if (data.message.content) {
-                    log(`从message.content提取内容`);
-                    return data.message.content;
-                  }
-                }
-                
-                // 5. 检查data.data如果它是字符串
-                if (data.data && typeof data.data === 'string') {
-                  try {
-                    // 尝试解析data.data如果它是JSON字符串
-                    const dataObj = JSON.parse(data.data);
-                    for (const field of ['result', 'text', 'content', 'answer', 'output']) {
-                      if (dataObj[field]) {
-                        log(`从解析的data.data.${field}提取内容`);
-                        return dataObj[field];
-                      }
-                    }
-                  } catch (e) {
-                    // 如果不是JSON，作为纯文本返回
-                    return data.data;
-                  }
-                }
-                
-                return null;
-              };
-              
-              // 处理事件类型数据
-              if (actualData.event) {
-                log(`处理事件: ${actualData.event}`);
-                
-                switch (actualData.event) {
-                  case 'workflow_started':
-                    workflowRunId = actualData.workflow_run_id;
-                    log("工作流已开始", { id: workflowRunId });
-                    notify('工作流已开始', { workflowRunId });
-                    break;
-                    
-                  case 'workflow_finished':
-                    log("工作流已完成", { id: actualData.workflow_run_id, data: JSON.stringify(actualData).substring(0, 200) });
-                    
-                    // 先尝试从data.outputs字段获取结果，这是API文档明确指定的输出位置
-                    let finalContent = null;
-                    if (actualData.data && actualData.data.outputs) {
-                      log("检测到data.outputs字段", { 
-                        type: typeof actualData.data.outputs,
-                        structure: JSON.stringify(actualData.data.outputs).substring(0, 200)
-                      });
-                      
-                      // 直接完整打印outputs内容，不截断
-                      console.log('完整的data.outputs内容:', JSON.stringify(actualData.data.outputs));
-                      
-                      // 处理outputs字段，可能是对象或字符串
-                      if (typeof actualData.data.outputs === 'string') {
-                        try {
-                          // 如果是JSON字符串，尝试解析
-                          const outputsObj = JSON.parse(actualData.data.outputs);
-                          log("解析outputs成功", { keys: Object.keys(outputsObj) });
-                          
-                          // 常见字段名：result, content, text, output
-                          for (const field of ['result', 'content', 'text', 'output']) {
-                            if (outputsObj[field]) {
-                              finalContent = outputsObj[field];
-                              log(`从outputs解析结果中找到[${field}]字段`, { length: finalContent.length });
-                              break;
-                            }
-                          }
-                        } catch (e) {
-                          // 如果不是有效JSON，直接使用outputs字符串内容
-                          finalContent = actualData.data.outputs;
-                          log("outputs非JSON格式，直接使用文本内容", { length: finalContent.length });
-                        }
-                      } 
-                      // 如果是对象，直接查找字段
-                      else if (typeof actualData.data.outputs === 'object') {
-                        // 记录outputs对象的所有键，帮助诊断
-                        const outputKeys = Object.keys(actualData.data.outputs);
-                        log("outputs对象的键", { keys: outputKeys });
-                        
-                        // 1. 检查常见字段名
-                        for (const field of ['result', 'content', 'text', 'output', 'out','answer']) {
-                          if (actualData.data.outputs[field]) {
-                            finalContent = actualData.data.outputs[field];
-                            log(`从outputs对象中找到[${field}]字段`, { length: finalContent.length });
-                            break;
-                          }
-                        }
-                        
-                        // 2. 如果没找到，尝试直接使用第一个非空值
-                        if (!finalContent && outputKeys.length > 0) {
-                          for (const key of outputKeys) {
-                            const value = actualData.data.outputs[key];
-                            if (value && typeof value === 'string' && value.trim().length > 0) {
-                              finalContent = value;
-                              log(`使用outputs对象中的第一个非空值[${key}]`, { length: finalContent.length });
-                              break;
-                            } else if (value && typeof value === 'object') {
-                              // 3. 如果值是对象，尝试查找其中的文本内容
-                              log(`检查outputs.${key}对象`, { type: typeof value, structure: JSON.stringify(value).substring(0, 100) });
-                              
-                              for (const innerField of ['result', 'content', 'text', 'value', 'message']) {
-                                if (value[innerField] && typeof value[innerField] === 'string') {
-                                  finalContent = value[innerField];
-                                  log(`从outputs.${key}.${innerField}中找到内容`, { length: finalContent.length });
-                                  break;
-                                }
-                              }
-                              
-                              // 如果嵌套对象没找到内容字段，但JSON字符串可能有意义，则使用它
-                              if (!finalContent) {
-                                const jsonStr = JSON.stringify(value);
-                                if (jsonStr.length > 20 && jsonStr !== "{}") { // 不为空且不是空对象
-                                  finalContent = jsonStr;
-                                  log(`将outputs.${key}对象转为JSON字符串作为内容`, { length: finalContent.length });
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                    
-                    // 如果直接提取失败，使用通用提取方法
-                    if (!finalContent) {
-                      finalContent = extractContent(actualData);
-                    }
-                    
-                    if (finalContent) {
-                      log("从工作流完成事件中提取到内容", { length: finalContent.length });
-                      resultContent = finalContent; // 替换为完整结果，而非追加
-                      notify('工作流完成', { 
-                        workflowRunId, 
-                        content: resultContent,
-                        result: resultContent,
-                        done: true 
-                      });
-                      
-                      // 工作流完成并有内容，直接结束
-                      if (onComplete) {
-                        log("工作流完成并有内容，调用完成回调");
-                        onComplete(resultContent);
-                      }
-                      return { cancel: () => {} };
-                    } else {
-                      // 尝试从根级别检查是否有result字段 (可能是单独返回结果的情况)
-                      if (parsedData && parsedData.result && typeof parsedData.result === 'string') {
-                        log("在根级别找到result字段", { length: parsedData.result.length });
-                        resultContent = parsedData.result;
-                        notify('工作流完成', { 
-                          workflowRunId, 
-                          content: resultContent,
-                          result: resultContent,
-                          done: true 
-                        });
-                        
-                        if (onComplete) {
-                          onComplete(resultContent);
-                        }
-                        return { cancel: () => {} };
-                      }
-                      
-                      // 工作流完成但无内容，可能最终结果会单独返回
-                      log("工作流完成但没有提取到内容，当前结果长度:", resultContent.length);
-                      
-                      // 如果有累积的内容，则发送完成事件
-                      if (resultContent.length > 0) {
-                        notify('工作流完成', { 
-                          workflowRunId, 
-                          content: resultContent,
-                          result: resultContent,
-                          done: true 
-                        });
-                        
-                        if (onComplete) {
-                          log("工作流完成，使用累积内容回调");
-                          onComplete(resultContent);
-                        }
-                        return { cancel: () => {} };
-                      } else {
-                        // 没有任何内容，使用空字符串完成
-                        notify('工作流已完成', { workflowRunId, done: true });
-                        if (onComplete) {
-                          log("工作流完成但无内容，返回空字符串");
-                          onComplete("");
-                        }
-                        return { cancel: () => {} };
-                      }
-                    }
-                    break;
-                    
-                  case 'node_started':
-                    const nodeId = actualData.node_id || 
-                                  (actualData.data && actualData.data.node_id) || 
-                                  '未知节点';
-                    log("节点开始处理", { nodeId });
-                    notify('节点开始处理', { nodeId });
-                    break;
-                    
-                  case 'node_finished':
-                    nodeCount++;
-                    const finishedNodeId = actualData.node_id || 
-                                        (actualData.data && actualData.data.node_id) || 
-                                        '未知节点';
-                    log("节点处理完成", { nodeId: finishedNodeId, count: nodeCount });
-                    
-                    // 检查节点是否有输出内容
-                    const nodeOutput = extractContent(actualData);
-                    if (nodeOutput) {
-                      log("从节点完成事件中提取内容", { length: nodeOutput.length });
-                      resultContent = nodeOutput; // 这里直接替换也可能更合适
-                      notify('接收内容', { 
-                        workflowRunId, 
-                        content: resultContent,
-                        result: resultContent
-                      });
-                    }
-                    
-                    notify(`节点处理完成 (${nodeCount})`, { nodeCount });
-                    break;
-                    
-                  case 'text_chunk':
-                    // 文本块事件特殊处理（常见于流式生成）
-                    const chunkText = extractContent(actualData);
-                    if (chunkText) {
-                      resultContent += chunkText;
-                      log("接收到文本块", { preview: chunkText.substring(0, 30) });
-                      
-                      // 将内容和结果同时传递给回调
-                      notify('接收内容', { 
-                        workflowRunId, 
-                        nodeCount, 
-                        content: resultContent,
-                        result: resultContent,
-                        chunk: chunkText 
-                      });
-                    }
-                    break;
-                    
-                  case 'message':
-                    // 特殊处理message事件
-                    const messageText = actualData.answer || extractContent(actualData);
-                    if (messageText) {
-                      resultContent += messageText;
-                      log("接收到消息", { preview: messageText.substring(0, 30) });
-                      
-                      notify('接收内容', { 
-                        workflowRunId, 
-                        content: resultContent,
-                        result: resultContent
-                      });
-                    }
-                    break;
-                    
-                  default:
-                    // 检查其他任何事件是否包含内容
-                    const eventContent = extractContent(actualData);
-                    if (eventContent) {
-                      resultContent += eventContent;
-                      log(`从事件[${actualData.event}]中提取内容`, { length: eventContent.length });
-                      notify('接收内容', { 
-                        workflowRunId, 
-                        content: resultContent,
-                        result: resultContent
-                      });
-                    }
-                }
+                clearTimeout(streamTimeout);
+                if (onComplete) onComplete(finalContent);
+                resolve(finalContent);
+                return;
+              } else if (parsedData.event === 'text_chunk') {
+                 if (parsedData.data && parsedData.data.text) {
+                    finalContent += parsedData.data.text;
+                    notify('接收内容', { content: parsedData.data.text });
+                 }
               }
-              // 处理非事件类型的数据（直接内容）
-              else {
-                const directContent = extractContent(actualData);
-                if (directContent) {
-                  resultContent += directContent;
-                  log("接收到直接内容", { length: directContent.length });
-                  notify('接收内容', { 
-                    content: resultContent,
-                    result: resultContent
-                  });
-                } else {
-                  log("未能从数据中提取内容", { data: JSON.stringify(actualData).substring(0, 100) });
-                }
-              }
-            } catch (parseError) {
-              if (data.length > 0 && data !== "[DONE]") {
-                log("解析流式数据失败", { error: parseError.message, data: data.substring(0, 100) });
-              }
+            } catch (e) {
+              log("解析流数据失败", { error: e.message, data });
             }
           }
         }
-      } catch (streamError) {
-        log('处理响应流时出错', { error: streamError.message });
-        
-        // 如果已接收到足够内容，直接返回
-        if (resultContent.length > 100) {
-          log('已接收足够内容，返回现有结果', { length: resultContent.length });
-          if (onComplete) onComplete(resultContent);
-          return { cancel: () => {} };
+      } catch (error) {
+        log(`第 ${attempt} 次尝试失败: ${error.message}`);
+        if (attempt > maxRetries) {
+          if (onError) onError(error);
+          reject(error);
+          return;
         }
-        
-        // 否则尝试重试
-        if (retryCount < maxRetries) {
-          log(`流处理错误，准备第${retryCount + 1}次重试...`);
-          notify(`连接中断，正在重试 (${retryCount + 1}/${maxRetries})...`);
-          continue;
-        } else {
-          // 重试次数用尽，使用模拟数据
-          log('所有重试失败，使用模拟数据');
-          if (onError) onError(streamError);
-          return createMockResponse(inputs, callbacks);
-        }
+        await new Promise(res => setTimeout(res, 2000 * attempt));
       }
-      
-      // 流处理成功，返回取消函数
-      return {
-        cancel: () => {
-          reader.cancel();
-          notify('已取消请求', { workflowRunId, canceled: true });
-          log('用户取消了请求');
-        }
-      };
-    } catch (error) {
-      log('调用Dify工作流出错', { error: error.message });
-      
-      // 尝试重试
-      if (retryCount < maxRetries) {
-        log(`一般错误，准备第${retryCount + 1}次重试...`);
-        notify(`出错，正在重试 (${retryCount + 1}/${maxRetries})...`);
-        await new Promise(r => setTimeout(r, 3000));
-        continue;
-      }
-      
-      // 重试次数用尽
-      if (onError) onError(error);
-      return createMockResponse(inputs, callbacks);
     }
-  }
-  
-  // 代码不应该运行到这里，但以防万一
-  log('所有重试尝试均已失败，使用模拟数据');
-  return createMockResponse(inputs, callbacks);
+  });
 }
 
-/**
- * 创建模拟响应，在API不可用或请求失败时使用
- * @param {Object} inputs - 输入参数
- * @param {Object} callbacks - 回调函数集合
- * @returns {Object} 带cancel方法的对象
- */
 function createMockResponse(inputs, callbacks = {}) {
   const { onStart, onProgress, onComplete } = callbacks;
   const { prompt: title, style = '', context = '' } = inputs;

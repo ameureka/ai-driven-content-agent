@@ -1,20 +1,22 @@
 // 模板管理器
-import techIntro from '../../templates/tech_intro.js';
-import newsBroad from '../../templates/news_broad.js';
-import techInterpre from '../../templates/tech_interpre.js';
-import general from '../../templates/general.js';
-import videoInterpre from '../../templates/video_interpre.js';
+import articleWechat from '../../templates/article_wechat.js';
+import techAnalysisWechat from '../../templates/tech_analysis_wechat.js';
+import newsModernWechat from '../../templates/news_modern_wechat.js';
+import githubProjectWechat from '../../templates/github_project_wechat.js';
+import aiBenchmarkWechat from '../../templates/ai_benchmark_wechat.js';
+import professionalAnalysisWechat from '../../templates/professional_analysis_wechat.js';
 
 // 默认模板名称
-const DEFAULT_TEMPLATE = 'general';
+const DEFAULT_TEMPLATE = 'article_wechat';
 
 // 可用模板列表
 const templates = {
-  tech_intro: techIntro,
-  news_broad: newsBroad,
-  tech_interpre: techInterpre,
-  general: general,
-  video_interpre: videoInterpre
+  article_wechat: articleWechat,
+  tech_analysis_wechat: techAnalysisWechat,
+  news_modern_wechat: newsModernWechat,
+  github_project_wechat: githubProjectWechat,
+  ai_benchmark_wechat: aiBenchmarkWechat,
+  professional_analysis_wechat: professionalAnalysisWechat
 };
 
 /**

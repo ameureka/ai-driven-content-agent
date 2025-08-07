@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const workflowStatusIndicator = document.getElementById('workflow-status');
 
   // 状态变量
-  let selectedTemplate = 'general'; // 默认模板
+  let selectedTemplate = 'article_wechat'; // 默认模板
   let generatedUrl = null;
   let isDarkTheme = localStorage.getItem('darkTheme') !== null ? localStorage.getItem('darkTheme') === 'true' : true; // 默认使用深色模式
   let isGeneratingArticle = false; // 用于跟踪文章生成状态
@@ -165,9 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
         requestData.title = title;
       }
 
-      // 发送API请求
+      // 发送API请求 - 使用新的RESTful API端点
       // const apiUrl = 'https://my-markdown-renderer.lynnwongchina.workers.dev/upload';
-      const apiUrl = `${window.location.protocol}//${window.location.host}/upload`;
+      const apiUrl = `${window.location.protocol}//${window.location.host}/api/v1/content/render`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -195,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.removeItem('apiKey');
         }
 
-        // 保存生成的URL并显示结果
-        generatedUrl = data.url;
+        // 保存生成的URL并显示结果 - 使用新API响应格式
+        generatedUrl = data.data.htmlUrl;
         resultUrl.textContent = generatedUrl;
         resultUrl.href = generatedUrl;
         resultPanel.classList.remove('hidden');
@@ -222,9 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 重置模板选择
     templateCards.forEach(card => {
       card.classList.remove('selected');
-      if (card.dataset.template === 'general') {
-        card.classList.add('selected');
-        selectedTemplate = 'general';
+      if (card.dataset.template === 'article_wechat') {
+      card.classList.add('selected');
+      selectedTemplate = 'article_wechat';
       }
     });
 
@@ -238,153 +238,217 @@ document.addEventListener('DOMContentLoaded', () => {
   // 提供Markdown示例
   function insertExample() {
     const examples = {
-      general: `# 通用示例标题
+      article_wechat: `# 通用文章示例
 
-这是一个**通用示例**文档。你可以在这里添加*各种样式*的内容。
+这是一个**微信公众号**文章示例。支持丰富的*排版样式*和特殊内容块。
 
-## 二级标题
+## 主要内容
 
-- 列表项1
-- 列表项2
-- 列表项3
+- 支持目录自动生成
+- 响应式设计
+- 微信HTML兼容
 
-> 这是一段引用文本
+:::note
+这是一个提示信息块，用于展示重要提醒。
+:::
 
 ### 代码示例
 
 \`\`\`javascript
-// 这是一段代码
-function greet() {
-  console.log("Hello, world!");
+// 微信公众号文章代码展示
+function wechatArticle() {
+  console.log("Hello WeChat!");
 }
 \`\`\`
 
-更多[链接文本](https://example.com)。`,
+更多信息请访问[官方文档](https://example.com)。`,
 
-      tech_intro: `# 产品技术介绍
+      tech_analysis_wechat: `# 技术深度解析：AI大模型发展趋势
 
-**MyApp** 是一款帮助开发者提高效率的工具。
+**人工智能大模型**正在重塑整个科技行业，本文将深入分析其发展趋势和技术原理。
 
-## 主要功能
+## 核心技术突破
 
-1. 代码自动补全
-2. 语法检查
-3. 版本控制集成
+1. Transformer架构优化
+2. 多模态融合技术
+3. 参数高效微调
 
-## 技术栈
+:::tip
+大模型的发展离不开算力、数据和算法的协同进步。
+:::
 
-我们使用了以下技术:
+## 技术架构分析
+
+\`\`\`python
+# GPT模型核心结构
+class TransformerBlock:
+    def __init__(self, d_model, n_heads):
+        self.attention = MultiHeadAttention(d_model, n_heads)
+        self.ffn = FeedForward(d_model)
+        
+    def forward(self, x):
+        x = self.attention(x) + x
+        x = self.ffn(x) + x
+        return x
+\`\`\`
+
+## 未来展望
+
+:::warning
+大模型发展需要关注安全性、可解释性等关键问题。
+:::`,
+
+      news_modern_wechat: `# 科技快讯：OpenAI发布GPT-5模型
+
+**2024年最重要的AI突破**来了！OpenAI今日正式发布GPT-5，性能较前代提升显著。
+
+## 核心亮点
+
+🚀 **性能提升**：推理能力提升300%
+🎯 **多模态**：支持文本、图像、音频
+⚡ **效率优化**：响应速度提升50%
+
+:::note
+本次发布标志着AGI时代的重要里程碑。
+:::
+
+## 技术规格
+
+| 参数 | GPT-4 | GPT-5 |
+|------|-------|-------|
+| 参数量 | 1.76T | 10T+ |
+| 上下文长度 | 128K | 1M |
+| 训练数据 | 13T tokens | 50T+ tokens |
+
+> 这将彻底改变人工智能应用的格局。
+
+更多详情请关注[OpenAI官网](https://openai.com)。`,
+
+      github_project_wechat: `# 开源项目推荐：Next.js 15.0
+
+**Next.js 15.0** 正式发布！这个React全栈框架带来了革命性的改进。
+
+## 🌟 主要特性
+
+### App Router 2.0
+- 更快的路由性能
+- 改进的缓存策略
+- 增强的开发体验
+
+### Turbopack稳定版
+\`\`\`bash
+# 安装最新版本
+npm install next@latest
+
+# 启用Turbopack
+npm run dev -- --turbo
+\`\`\`
+
+:::tip
+Turbopack比Webpack快10倍，显著提升开发效率。
+:::
+
+## 📊 性能对比
+
+| 构建工具 | 冷启动时间 | 热更新时间 |
+|----------|------------|------------|
+| Webpack | 2.3s | 0.8s |
+| Turbopack | 0.2s | 0.1s |
+
+## 🚀 快速开始
 
 \`\`\`javascript
-// 前端框架
-import React from 'react';
-import { useState } from 'react';
-
-function App() {
-  const [isLoading, setIsLoading] = useState(false);
-  // ...
+// app/page.js
+export default function Home() {
+  return (
+    <div>
+      <h1>Welcome to Next.js 15!</h1>
+    </div>
+  )
 }
 \`\`\`
 
-## 系统要求
+⭐ **GitHub**: [vercel/next.js](https://github.com/vercel/next.js)`,
 
-| 操作系统 | 最低内存 | 推荐配置 |
-|---------|--------|---------|
-| Windows | 4GB    | 8GB     |
-| macOS   | 4GB    | 8GB     |`,
+      ai_benchmark_wechat: `# AI模型基准测试：Claude 3.5 vs GPT-4o
 
-      news_broad: `# 重要公告：系统升级通知
+最新的**AI模型对比测试**结果出炉！我们对两大主流模型进行了全面评估。
 
-我们将于**2023年5月15日**进行系统升级，届时服务将暂停约*2小时*。
+## 📊 测试维度
 
-## 升级内容
-
-1. 性能优化
-2. 新功能上线
-3. 安全漏洞修复
-
-> 感谢您的理解与支持！
-
-如有疑问，请[联系我们](mailto:support@example.com)。`,
-
-      tech_interpre: `# 深度解析：React Hooks原理
-
-**React Hooks** 是React 16.8引入的重要特性，它让函数组件也能拥有状态和生命周期功能。
-
-## 核心概念
-
-Hooks的设计基于以下原则：
-
-1. 完全可选
-2. 100%向后兼容
-3. 随时可用
-
-> 重要：Hooks必须在函数组件顶层调用，不能在循环、条件或嵌套函数中调用。
-
-## 实现原理
-
-\`\`\`javascript
-// useState的简化实现
-function useState(initialValue) {
-  const hook = getCurrentHook();
-  
-  if (!hook.state) {
-    hook.state = initialValue;
-  }
-  
-  const setState = newValue => {
-    hook.state = newValue;
-    rerender();
-  }
-  
-  return [hook.state, setState];
-}
+### 代码能力测试
+\`\`\`python
+# 测试用例：算法实现
+def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)
 \`\`\`
 
-## 性能考量
+## 🏆 评测结果
 
-Hooks通过链表实现状态追踪，每个组件实例维护一个当前hook索引。`,
+| 测试项目 | Claude 3.5 | GPT-4o | 胜者 |
+|----------|------------|--------|---------|
+| 代码生成 | 92% | 89% | 🥇 Claude |
+| 数学推理 | 88% | 94% | 🥇 GPT-4o |
+| 创意写作 | 91% | 87% | 🥇 Claude |
+| 多语言理解 | 85% | 90% | 🥇 GPT-4o |
 
-      video_interpre: `# 视频教程：CSS Grid布局详解
+:::note
+测试基于1000个标准化任务，结果仅供参考。
+:::
 
-@[00:00:10] 视频介绍
+## 💡 使用建议
 
-本教程将讲解CSS Grid布局的基础用法和高级技巧。
+:::tip
+**代码开发**：推荐Claude 3.5
+**数学计算**：推荐GPT-4o
+**内容创作**：两者都很优秀
+:::`,
 
-@[00:01:25] 基础概念
+      professional_analysis_wechat: `# 专业分析报告：2024年AI行业发展白皮书
 
-CSS Grid是一种二维布局系统，它可以同时处理行和列。
+## 📋 执行摘要
 
-\`\`\`css
-.container {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  grid-template-rows: auto;
-  gap: 10px;
-}
-\`\`\`
+本报告深入分析了**2024年人工智能行业**的发展现状、技术趋势和市场机遇。
 
-@[00:05:30] 实际案例
+:::note
+本报告基于500+企业调研和100+专家访谈。
+:::
 
-下面是一个响应式网站布局的例子：
+## 🔍 市场现状分析
 
-\`\`\`html
-<div class="grid-container">
-  <header>页头</header>
-  <nav>导航</nav>
-  <main>主内容</main>
-  <aside>侧边栏</aside>
-  <footer>页脚</footer>
-</div>
-\`\`\`
+### 市场规模
+- 全球AI市场：$1,847亿美元（+37.3% YoY）
+- 中国AI市场：$462亿美元（+42.1% YoY）
+- 预计2025年突破$3,000亿美元
 
-@[00:12:45] 高级技巧
+## 📈 发展趋势
 
-使用grid-area命名区域，创建更复杂的布局。`
+### 1. 大模型商业化加速
+:::tip
+**关键指标**：
+- 企业采用率：68%（+23% YoY）
+- 平均ROI：312%
+- 部署周期：缩短至3-6个月
+:::
+
+## 🎯 投资建议
+
+:::warning
+**风险提示**：
+- 技术迭代风险
+- 监管政策变化
+- 数据安全挑战
+:::`
     };
 
     // 根据选中的模板插入示例
-    markdownEditor.value = examples[selectedTemplate] || examples.general;
+    markdownEditor.value = examples[selectedTemplate] || examples.article_wechat;
     pageTitleInput.value = '示例文档';
     showNotification('已插入示例内容', 'success');
   }
@@ -456,13 +520,13 @@ CSS Grid是一种二维布局系统，它可以同时处理行和列。
       loadingOverlay.classList.remove('hidden');
 
       // 发送API请求
-      const response = await fetch('/api/dify/generate', {
+      const response = await fetch('/api/v1/workflows/dify-general/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey
         },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ inputs: { url } })
       });
 
       const data = await response.json();
@@ -497,7 +561,9 @@ CSS Grid是一种二维布局系统，它可以同时处理行和列。
 
   // 生成文章内容
   async function generateArticleContent() {
+    console.log('=== 新版本的generateArticleContent函数被调用 ===');
     const apiKey = apiKeyInput.value.trim();
+    console.log('API密钥值:', apiKey ? '已设置' : '未设置', '长度:', apiKey.length);
     const title = workflowTitleInput.value.trim();
     const style = workflowStyleInput.value.trim();
     const context = workflowContextInput.value.trim();
@@ -530,21 +596,19 @@ CSS Grid是一种二维布局系统，它可以同时处理行和列。
         localStorage.removeItem('apiKey');
       }
 
-      // 构建API URL
-      const apiUrl = `${window.location.protocol}//${window.location.host}/api/dify/generateArticle`;
-      const params = new URLSearchParams({
-        apiKey: apiKey,
-        title: title
-      });
+      // 构建API请求
+      const apiUrl = `${window.location.protocol}//${window.location.host}/api/v1/workflows/dify-article/execute`;
+      const requestBody = {
+        title: title,
+        style: style || '',
+        context: context || ''
+      };
       
-      if (style) params.append('style', style);
-      if (context) params.append('context', context);
+      console.log(`请求URL: ${apiUrl}`);
+      console.log('请求参数:', { ...requestBody });
       
-      const fullUrl = `${apiUrl}?${params.toString()}`;
-      console.log(`请求URL: ${fullUrl.replace(apiKey, '***')}`);
-      
-      // 开始API调用，使用适当的重试逻辑
-      await fetchWithRetry(fullUrl);
+      // 开始API调用，使用POST请求
+      await fetchWithRetryPost(apiUrl, requestBody, apiKey);
       
     } catch (error) {
       console.error('文章生成错误:', error);
@@ -662,6 +726,116 @@ CSS Grid是一种二维布局系统，它可以同时处理行和列。
       
       // 开始第一次连接
       setupEventSource();
+    });
+  }
+  
+  // 带重试机制的POST请求（用于新API）
+  async function fetchWithRetryPost(url, requestBody, apiKey, maxRetries = 2) {
+    let currentRetry = 0;
+    
+    return new Promise(async (resolve, reject) => {
+      async function makeRequest() {
+        try {
+          console.log(`发起POST请求 (尝试 ${currentRetry + 1}/${maxRetries + 1})`);
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': apiKey
+            },
+            body: JSON.stringify(requestBody)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.trim() === '') continue;
+              
+              try {
+                if (line === '[DONE]') {
+                  console.log('接收到完成信号');
+                  completeArticleGeneration();
+                  resolve();
+                  return;
+                }
+                
+                const data = JSON.parse(line);
+                
+                if (data.status) {
+                  console.log(`状态更新: ${data.status}`);
+                  workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> ${data.status}`;
+                  
+                  if (data.content) {
+                    console.log(`内容更新: 收到 ${data.content.length} 字符`);
+                    markdownEditor.value = data.content;
+                    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                  } else if (data.result) {
+                    console.log(`内容更新 (result): 收到 ${data.result.length} 字符`);
+                    markdownEditor.value = data.result;
+                    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                  }
+                  
+                  if (data.done) {
+                    console.log('生成完成');
+                    completeArticleGeneration();
+                    resolve();
+                    return;
+                  }
+                } else if (data.error) {
+                  const errorMsg = data.error || '未知错误';
+                  console.error(`服务器返回错误: ${errorMsg}`);
+                  reject(new Error(errorMsg));
+                  return;
+                }
+              } catch (parseError) {
+                console.error('解析响应数据失败:', parseError, line);
+              }
+            }
+          }
+          
+          completeArticleGeneration();
+          resolve();
+          
+        } catch (error) {
+          console.error('请求失败:', error);
+          
+          if (currentRetry < maxRetries) {
+            currentRetry++;
+            const retryDelay = 1000 * currentRetry;
+            
+            workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> 请求失败，${retryDelay/1000}秒后重试 (${currentRetry}/${maxRetries})...`;
+            console.log(`请求失败，${retryDelay/1000}秒后进行第${currentRetry}次重试`);
+            
+            setTimeout(makeRequest, retryDelay);
+          } else {
+            console.log('所有重试均失败，使用模拟数据');
+            workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> 切换到本地数据生成...`;
+            showNotification('无法连接到服务器，将使用本地数据生成内容', 'warning');
+            
+            const title = requestBody.title;
+            const style = requestBody.style;
+            const context = requestBody.context;
+            
+            useMockData(title, style, context);
+            resolve();
+          }
+        }
+      }
+      
+      makeRequest();
     });
   }
   

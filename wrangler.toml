@@ -1,5 +1,5 @@
 # Worker 的唯一名称，部署后会成为 URL 的一部分
-name = "my-markdown-renderer"
+name = "ai-driven-content-agent"
 # Worker 入口文件
 main = "src/index.js"
 # 兼容性日期，更新到 2024-10-30
@@ -13,14 +13,20 @@ compatibility_flags = ["nodejs_compat"]
 [[kv_namespaces]]
 binding = "MARKDOWN_KV"
 id = "e8212bb5681840a3a44e1bfff52fd505"
-preview_id = "ed67abba3b504765839b8c7391fe4e5c"
+preview_id = "e084f2191ffb4ac481f7113f5496fbd9"
 
 # --- 静态资源绑定 ---
 # 绑定静态资源文件夹，使Worker可以访问前端页面
 [[r2_buckets]]
 binding = "ASSETS"
-bucket_name = "markdown-renderer-assets-new"
-preview_bucket_name = "markdown-renderer-assets-new"
+bucket_name = "ai-driven-content-agent-assets"
+preview_bucket_name = "ai-driven-content-agent-assets"
+
+# --- 本地开发静态资源 ---
+# 为本地开发提供静态文件服务
+[assets]
+directory = "./public"
+binding = "LOCAL_ASSETS"
 
 # --- 环境变量配置 ---
 # 对于敏感信息，我们使用 Cloudflare Workers Secrets

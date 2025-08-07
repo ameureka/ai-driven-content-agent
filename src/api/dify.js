@@ -13,11 +13,12 @@ export async function callDifyWorkflow(url, apiKey, maxRetries = 2, timeoutMs = 
   let retryCount = 0;
 
   while (retryCount <= maxRetries) {
+    let timeoutId;
     try {
       console.log(`调用Dify URL工作流API (尝试 ${retryCount + 1}/${maxRetries + 1})，URL: ${url}`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(`${DIFY_API_URL}/workflows/run`, {
         method: "POST",
@@ -32,8 +33,6 @@ export async function callDifyWorkflow(url, apiKey, maxRetries = 2, timeoutMs = 
         }),
         signal: controller.signal // 添加超时控制
       });
-
-      clearTimeout(timeoutId); // 清除超时计时器
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -87,8 +86,6 @@ export async function callDifyWorkflow(url, apiKey, maxRetries = 2, timeoutMs = 
       return { answer: answer || '无法获取生成内容' };
 
     } catch (error) {
-      clearTimeout(timeoutId); // 捕获错误时也清除超时
-
       // 如果是 AbortError (超时)
       if (error.name === 'AbortError') {
           console.error(`Dify API请求超时 (${timeoutMs}ms)`);
@@ -112,10 +109,12 @@ export async function callDifyWorkflow(url, apiKey, maxRetries = 2, timeoutMs = 
               continue; // 继续下一次循环尝试
           } else {
               // 达到最大重试次数，抛出最终错误
-              throw new Error(`调用Dify URL工作流失败，经过 ${maxRetries + 1} 次尝试后仍然出错: ${error.message}`);
-          }
-      }
-    }
+                      throw new Error(`调用Dify URL工作流失败，经过 ${maxRetries + 1} 次尝试后仍然出错: ${error.message}`);
+                  }
+              }
+            } finally {
+              clearTimeout(timeoutId);
+            }
   }
   // 如果循环结束仍未成功（理论上不应发生，因为错误会抛出）
   throw new Error(`调用Dify URL工作流最终失败 (重试 ${maxRetries} 次后)`);
