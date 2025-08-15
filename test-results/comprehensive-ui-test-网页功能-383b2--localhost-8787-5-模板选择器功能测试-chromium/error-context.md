@@ -1,0 +1,108 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - text: 
+  - heading "AI 智能创作平台" [level=1]
+  - link " GitHub":
+    - /url: https://github.com/ameureka/wecom_text_agent
+  - button ""
+  - link "":
+    - /url: "#"
+- heading "Flexible AI content creation" [level=1]
+- heading "for modern teams" [level=2]
+- paragraph: Transform your content workflow with AI-powered tools. Create, edit, and format content with the precision of AI or the simplicity of drag-n-drop templates.
+- button "立即使用"
+- button "了解更多"
+- text: ⚡
+- heading "Key Features" [level=2]
+- text: 
+- heading "Multi-template Publishing" [level=3]
+- paragraph: Choose from a variety of professional templates to make your content stand out.
+- text: 
+- heading "Markdown Support" [level=3]
+- paragraph: Write in simple Markdown and convert to beautifully formatted content.
+- text: 
+- heading "Instant Sharing" [level=3]
+- paragraph: Generate shareable links instantly for seamless distribution.
+- text: 
+- heading "Dify Workflow Integration" [level=3]
+- paragraph: Leverage advanced AI workflows for content improvement and generation.
+- main:
+  - text: API密钥
+  - textbox "API密钥"
+  - button ""
+  - checkbox "记住密钥"
+  - text: 记住密钥
+  - heading "选择工作流" [level=3]
+  - text: 
+  - heading "URL内容生成" [level=4]
+  - paragraph: 从网页链接生成内容
+  - text: URL处理 
+  - heading "AI文章生成" [level=4]
+  - paragraph: 基于关键词生成文章
+  - text: 文本生成
+  - button " 添加自定义工作流"
+  - text: AI文章改写
+  - textbox "AI文章改写"
+  - button " 从URL生成" [disabled]
+  - heading "AI文章生成" [level=3]
+  - text: 关键词
+  - textbox "关键词"
+  - text: 风格
+  - textbox "风格"
+  - text: 上下文
+  - textbox "上下文"
+  - button " AI生成"
+  - text: 文章标题
+  - textbox "文章标题"
+  - heading "选择排版模板" [level=3]
+  - text: 
+  - heading "通用文章" [level=4]
+  - paragraph: 微信公众号通用文章模板
+  - text: 
+  - heading "技术解读" [level=4]
+  - paragraph: 深度技术分析和解读
+  - text: 
+  - heading "新闻广播" [level=4]
+  - paragraph: 现代化新闻资讯模板
+  - heading "GitHub项目" [level=4]
+  - paragraph: 开源项目介绍和展示
+  - text: 
+  - heading "AI基准测试" [level=4]
+  - paragraph: AI模型评测和对比
+  - text: 
+  - heading "专业分析" [level=4]
+  - paragraph: 深度研究报告和专业文档
+  - button " 生成排版"
+  - button " 预览" [disabled]
+  - button " 复制链接" [disabled]
+  - button " 重置"
+  - heading "Markdown编辑器" [level=2]
+  - button ""
+  - button ""
+  - button ""
+  - textbox "在此粘贴或输入Markdown内容..."
+- contentinfo:
+  - heading "产品" [level=3]
+  - list:
+    - listitem:
+      - link "功能介绍":
+        - /url: "#"
+  - heading "资源" [level=3]
+  - list:
+    - listitem:
+      - link "帮助中心":
+        - /url: /wiki
+  - heading "社区" [level=3]
+  - list:
+    - listitem:
+      - link "GitHub":
+        - /url: "#"
+    - listitem:
+      - link "Twitter":
+        - /url: "#"
+  - heading "联系" [level=3]
+  - list
+  - text:  AI 智能创作平台 © 2025 AI 智能创作平台 | All rights reserved.
+```

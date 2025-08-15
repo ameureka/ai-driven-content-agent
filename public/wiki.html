@@ -361,9 +361,10 @@
                 <h3>基础信息</h3>
                 <ul>
                     <li><strong>API版本:</strong> v1</li>
-                    <li><strong>基础URL:</strong> <span class="inline-code">https://your-domain.com/api/v1</span></li>
+                    <li><strong>基础URL:</strong> <span class="inline-code">http://localhost:8787/api/v1</span></li>
                     <li><strong>内容类型:</strong> <span class="inline-code">application/json</span></li>
-                    <li><strong>认证方式:</strong> API密钥（Header: <span class="inline-code">X-API-Key</span> 或 <span class="inline-code">Authorization: Bearer &lt;token&gt;</span>）</li>
+                    <li><strong>认证方式:</strong> API密钥（Header: <span class="inline-code">Authorization: Bearer &lt;token&gt;</span>）</li>
+                    <li><strong>测试API密钥:</strong> <span class="inline-code">aiwenchuang</span></li>
                 </ul>
             </section>
 
@@ -371,11 +372,8 @@
                 <h2><i class="fas fa-key"></i> 认证方式</h2>
                 <p>所有需要认证的API请求都需要在请求头中包含有效的API密钥：</p>
                 <div class="code-block">
-# 方式1: 使用 X-API-Key 头
-curl -H "X-API-Key: your-api-key" https://your-domain.com/api/v1/content
-
-# 方式2: 使用 Authorization 头
-curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/content
+# 使用 Authorization 头认证
+curl -H "Authorization: Bearer aiwenchuang" http://localhost:8787/api/v1/status
                 </div>
             </section>
 
@@ -399,6 +397,14 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                     </tr>
                 </table>
 
+                <h4>请求示例</h4>
+                <div class="code-block">
+curl -s -X GET \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  http://localhost:8787/api/v1/status
+                </div>
+
                 <h4>响应示例</h4>
                 <div class="code-block">
 {
@@ -406,13 +412,17 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
   "message": "服务运行正常",
   "data": {
     "status": "healthy",
-    "uptime": 1704067200000,
+    "uptime": 1755231388856,
     "version": "v1",
     "capabilities": {
-      "templates": 5,
+      "templates": 6,
       "workflows": 2,
       "features": ["content_rendering", "ai_workflows", "template_system"]
     }
+  },
+  "meta": {
+    "timestamp": "2025-08-15T04:16:28.856Z",
+    "version": "v1"
   }
 }
                 </div>
@@ -442,13 +452,22 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                     </tr>
                 </table>
 
+                <h4>获取模板列表示例</h4>
+                <div class="code-block">
+curl -s -X GET \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  http://localhost:8787/api/v1/templates
+                </div>
+
                 <h3>可用模板</h3>
                 <ul>
-                    <li><strong>general:</strong> 通用模板，适用于各种内容类型</li>
-                    <li><strong>article_wechat:</strong> 微信公众号文章模板</li>
-                    <li><strong>news_modern_wechat:</strong> 现代新闻风格模板</li>
-                    <li><strong>tech_analysis_wechat:</strong> 技术分析模板</li>
-                    <li><strong>professional_analysis_wechat:</strong> 专业分析模板</li>
+                    <li><strong>article_wechat:</strong> 微信医疗文章模板，专为微信公众号设计</li>
+                    <li><strong>tech_analysis_wechat:</strong> 技术解读模板，专为技术内容解读设计</li>
+                    <li><strong>news_modern_wechat:</strong> 现代新闻模板，专为新闻资讯设计</li>
+                    <li><strong>github_project_wechat:</strong> GitHub项目推荐模板，专为开源项目推荐设计</li>
+                    <li><strong>ai_benchmark_wechat:</strong> AI基准测试模板，专为AI模型评测设计</li>
+                    <li><strong>professional_analysis_wechat:</strong> 专业分析模板，专为深度技术分析设计</li>
                 </ul>
             </section>
 
@@ -464,8 +483,8 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                     </tr>
                     <tr>
                         <td><span class="method-badge method-get">GET</span></td>
-                        <td><span class="inline-code">/api/v1/workflows</span></td>
-                        <td>获取工作流列表</td>
+                        <td><span class="inline-code">/api/v1/workflows/available</span></td>
+                        <td>获取所有可用工作流列表</td>
                         <td>否</td>
                     </tr>
                     <tr>
@@ -480,19 +499,66 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                         <td>执行工作流</td>
                         <td>是</td>
                     </tr>
+                    <tr>
+                        <td><span class="method-badge method-post">POST</span></td>
+                        <td><span class="inline-code">/api/v1/workflows/custom</span></td>
+                        <td>添加自定义工作流</td>
+                        <td>是</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method-badge method-delete">DELETE</span></td>
+                        <td><span class="inline-code">/api/v1/workflows/custom/{workflowId}</span></td>
+                        <td>删除自定义工作流</td>
+                        <td>是</td>
+                    </tr>
                 </table>
+
+                <h4>获取可用工作流示例</h4>
+                <div class="code-block">
+curl -s -X GET \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  http://localhost:8787/api/v1/workflows/available
+                </div>
+
+                <h4>执行工作流示例</h4>
+                <div class="code-block">
+# 执行URL内容生成工作流
+curl -s -X POST \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inputs": {
+      "url": "https://github.com/microsoft/TypeScript"
+    }
+  }' \
+  http://localhost:8787/api/v1/workflows/dify-general/execute
+
+# 执行AI文章生成工作流（流式）
+curl -s -X POST \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inputs": {
+      "title": "AI技术发展",
+      "style": "专业",
+      "context": "人工智能发展现状"
+    }
+  }' \
+  http://localhost:8787/api/v1/workflows/dify-article/execute?stream=true
+                </div>
 
                 <h3>可用工作流</h3>
                 <div class="feature-grid">
                     <div class="feature-card">
-                        <h4><i class="fas fa-brain"></i> dify-general</h4>
-                        <p><strong>Dify通用工作流</strong><br>
-                        使用Dify API进行通用内容处理，支持各种文本处理任务。</p>
+                        <h4><i class="fas fa-cloud-download-alt"></i> dify-general</h4>
+                        <p><strong>URL内容生成</strong><br>
+                        从URL生成内容（默认工作流），支持多种URL格式分析和内容提取。</p>
                     </div>
                     <div class="feature-card">
                         <h4><i class="fas fa-pen-fancy"></i> dify-article</h4>
-                        <p><strong>Dify文章生成工作流</strong><br>
-                        专门用于生成文章内容，支持流式响应和实时内容生成。</p>
+                        <p><strong>AI文章生成</strong><br>
+                        基于关键词生成文章（默认工作流），支持流式响应和实时内容生成。</p>
                     </div>
                 </div>
             </section>
@@ -515,6 +581,12 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                     </tr>
                     <tr>
                         <td><span class="method-badge method-get">GET</span></td>
+                        <td><span class="inline-code">/api/v1/content</span></td>
+                        <td>获取内容列表</td>
+                        <td>否</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method-badge method-get">GET</span></td>
                         <td><span class="inline-code">/api/v1/content/{contentId}</span></td>
                         <td>获取内容详情</td>
                         <td>否</td>
@@ -526,12 +598,31 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                         <td>否</td>
                     </tr>
                     <tr>
+                        <td><span class="method-badge method-get">GET</span></td>
+                        <td><span class="inline-code">/api/v1/content/{contentId}/url</span></td>
+                        <td>获取内容访问URL</td>
+                        <td>否</td>
+                    </tr>
+                    <tr>
                         <td><span class="method-badge method-delete">DELETE</span></td>
                         <td><span class="inline-code">/api/v1/content/{contentId}</span></td>
                         <td>删除内容</td>
                         <td>是</td>
                     </tr>
                 </table>
+
+                <h4>内容渲染示例</h4>
+                <div class="code-block">
+curl -s -X POST \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template": "article_wechat",
+    "title": "AI技术发展趋势",
+    "content": "# AI技术发展趋势\n\n## 引言\n\n人工智能技术正在快速发展..."
+  }' \
+  http://localhost:8787/api/v1/content/render
+                </div>
             </section>
 
             <section id="examples">
@@ -540,48 +631,71 @@ curl -H "Authorization: Bearer your-api-key" https://your-domain.com/api/v1/cont
                 <h3>1. 完整的内容渲染流程</h3>
                 <div class="code-block">
 # 1. 检查服务状态
-curl -X GET "https://your-domain.com/api/v1/status"
+curl -X GET "http://localhost:8787/api/v1/status"
 
 # 2. 获取可用模板
-curl -X GET "https://your-domain.com/api/v1/templates"
+curl -X GET "http://localhost:8787/api/v1/templates"
 
 # 3. 渲染内容
-curl -X POST "https://your-domain.com/api/v1/content/render" \
+curl -X POST "http://localhost:8787/api/v1/content/render" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
+  -H "Authorization: Bearer aiwenchuang" \
   -d '{
-    "content": "# Hello World\n\nThis is a test.",
-    "template": "general",
-    "title": "Test Document"
+    "content": "# AI技术发展趋势\n\n## 引言\n\n人工智能技术正在快速发展...",
+    "template": "article_wechat",
+    "title": "AI技术发展趋势"
   }'
 
 # 4. 查看渲染结果
-curl -X GET "https://your-domain.com/api/v1/content/abc123def456/html"
+curl -X GET "http://localhost:8787/api/v1/content/4ad7e901400ace34/html"
                 </div>
 
                 <h3>2. AI工作流执行</h3>
                 <div class="code-block">
 # 1. 获取可用工作流
-curl -X GET "https://your-domain.com/api/v1/workflows"
+curl -X GET "http://localhost:8787/api/v1/workflows/available"
 
-# 2. 执行文章生成工作流
-curl -X POST "https://your-domain.com/api/v1/workflows/dify-article/execute" \
+# 2. 执行URL内容生成工作流
+curl -X POST "http://localhost:8787/api/v1/workflows/dify-general/execute" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
+  -H "Authorization: Bearer aiwenchuang" \
   -d '{
-    "title": "AI技术发展趋势",
-    "style": "学术",
-    "context": "2024年人工智能领域的最新发展"
+    "inputs": {
+      "url": "https://github.com/microsoft/TypeScript"
+    }
   }'
 
-# 3. 流式执行（实时获取生成内容）
-curl -X POST "https://your-domain.com/api/v1/workflows/dify-article/execute?stream=true" \
+# 3. 执行AI文章生成工作流（流式）
+curl -X POST "http://localhost:8787/api/v1/workflows/dify-article/execute?stream=true" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-api-key" \
+  -H "Authorization: Bearer aiwenchuang" \
   -d '{
-    "title": "AI技术发展趋势",
-    "style": "学术"
+    "inputs": {
+      "title": "AI技术发展趋势",
+      "style": "专业",
+      "context": "人工智能发展现状"
+    }
   }'
+                </div>
+
+                <h3>3. 自定义工作流管理</h3>
+                <div class="code-block">
+# 1. 添加自定义工作流
+curl -X POST "http://localhost:8787/api/v1/workflows/custom" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer aiwenchuang" \
+  -d '{
+    "id": "translate-workflow",
+    "name": "智能翻译",
+    "description": "多语言智能翻译工作流",
+    "type": "url",
+    "apiKey": "app-translate-key",
+    "icon": "ion-md-globe"
+  }'
+
+# 2. 删除自定义工作流
+curl -X DELETE "http://localhost:8787/api/v1/workflows/custom/translate-workflow" \
+  -H "Authorization: Bearer aiwenchuang"
                 </div>
             </section>
 
@@ -656,8 +770,23 @@ curl -X POST "https://your-domain.com/api/v1/workflows/dify-article/execute?stre
                         <td>404</td>
                     </tr>
                     <tr>
+                        <td><span class="inline-code">WORKFLOW_NOT_FOUND</span></td>
+                        <td>工作流不存在</td>
+                        <td>404</td>
+                    </tr>
+                    <tr>
                         <td><span class="inline-code">WORKFLOW_ERROR</span></td>
                         <td>工作流执行错误</td>
+                        <td>500</td>
+                    </tr>
+                    <tr>
+                        <td><span class="inline-code">ROUTE_NOT_FOUND</span></td>
+                        <td>路由不存在</td>
+                        <td>404</td>
+                    </tr>
+                    <tr>
+                        <td><span class="inline-code">INTERNAL_ERROR</span></td>
+                        <td>内部服务器错误</td>
                         <td>500</td>
                     </tr>
                 </table>
@@ -666,10 +795,13 @@ curl -X POST "https://your-domain.com/api/v1/workflows/dify-article/execute?stre
             <section id="limits">
                 <h2><i class="fas fa-chart-line"></i> 限制和配额</h2>
                 <ul>
-                    <li><strong>内容大小:</strong> 最大25MB</li>
-                    <li><strong>API调用频率:</strong> 根据部署环境配置</li>
+                    <li><strong>内容大小:</strong> 最大10MB</li>
+                    <li><strong>API调用频率:</strong> 无限制（开发环境）</li>
                     <li><strong>存储时间:</strong> 内容默认永久存储，可通过API删除</li>
                     <li><strong>并发请求:</strong> 支持高并发处理</li>
+                    <li><strong>响应时间:</strong> 通常在5秒内</li>
+                    <li><strong>支持的模板数量:</strong> 6个内置模板</li>
+                    <li><strong>自定义工作流:</strong> 支持运行时添加和删除</li>
                 </ul>
             </section>
 

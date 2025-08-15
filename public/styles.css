@@ -128,7 +128,6 @@ body {
 .icon-button:hover {
   color: var(--primary-color);
   background-color: var(--hover-color);
-  transform: translateY(-1px);
 }
 
 /* Control Panel - 左侧控制面板 */
@@ -279,8 +278,6 @@ body {
 }
 
 .template-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   border-color: var(--primary-color);
 }
 
@@ -291,11 +288,135 @@ body {
 .template-card.selected {
   border-color: var(--primary-color);
   background-color: rgba(54, 112, 254, 0.05);
-  box-shadow: 0 4px 12px rgba(54, 112, 254, 0.1);
 }
 
 .template-card.selected::before {
   height: 100%;
+}
+
+/* Workflow Selector Styles */
+.workflow-selector-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.workflow-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.workflow-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 0;
+  background-color: var(--accent-color);
+  transition: height 0.3s ease;
+}
+
+.workflow-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.workflow-card:hover::before {
+  height: 100%;
+}
+
+.workflow-card.active {
+  border-color: var(--primary-color);
+  background-color: rgba(54, 112, 254, 0.05);
+}
+
+.workflow-card.active::before {
+  height: 100%;
+}
+
+.workflow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.workflow-icon i {
+  font-size: 24px;
+}
+
+.workflow-info {
+  flex: 1;
+}
+
+.workflow-info h4 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text-color);
+  transition: color 0.2s;
+}
+
+.workflow-info p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+}
+
+.workflow-type {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: rgba(54, 112, 254, 0.1);
+  color: var(--primary-color);
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.workflow-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.workflow-card.custom {
+  border-style: dashed;
+}
+
+.workflow-card.custom .workflow-icon {
+  background-color: rgba(151, 71, 255, 0.1);
+  color: #9747ff;
+}
+
+.workflow-card.custom .workflow-type {
+  background-color: rgba(151, 71, 255, 0.1);
+  color: #9747ff;
 }
 
 /* Action Buttons */
@@ -333,28 +454,10 @@ body {
   letter-spacing: 0.5px;
 }
 
-.primary-button::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
-  opacity: 0;
-  transform: scale(0.5);
-  transition: opacity 0.3s, transform 0.3s;
-}
+
 
 .primary-button:hover {
   background-color: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(54, 112, 254, 0.4);
-}
-
-.primary-button:hover::after {
-  opacity: 1;
-  transform: scale(1);
 }
 
 /* 确保生成中状态文字可见 */
@@ -374,7 +477,6 @@ body {
 
 .secondary-button:hover {
   background-color: var(--hover-color);
-  transform: translateY(-1px);
 }
 
 .primary-button:disabled, .secondary-button:disabled {
@@ -802,8 +904,6 @@ body {
 
 #generate-from-url:hover {
   background-color: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(54, 112, 254, 0.4);
 }
 
 #generate-from-url:disabled {
@@ -847,9 +947,11 @@ body {
   }
   
   #copy-source-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-color) !important;
+  font-weight: 600;
+}
   
   .template-grid {
     grid-template-columns: 1fr;
@@ -1412,15 +1514,18 @@ body {
 
 /* 修改主按钮样式为GitHub风格 */
 #generate-from-url,
-#generate-article-btn,
-.template-section .animated-title {
-  color: var(--github-blue);
+#generate-article-btn {
+  color: white;
 }
 
 #generate-from-url:hover,
 #generate-article-btn:hover {
   background-color: var(--github-hover-blue);
   color: white;
+}
+
+.template-section .animated-title {
+  color: var(--github-blue);
 }
 /* 模板选择标题 */
 .template-section .animated-title {

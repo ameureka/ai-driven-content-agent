@@ -40,12 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const workflowContextInput = document.getElementById('workflow-context');
   const generateArticleBtn = document.getElementById('generate-article-btn');
   const workflowStatusIndicator = document.getElementById('workflow-status');
+  const urlWorkflowStatusIndicator = document.getElementById('url-workflow-status');
+
+  // 工作流选择器
+  const workflowGrid = document.getElementById('workflow-grid');
+  const addCustomWorkflowBtn = document.getElementById('add-custom-workflow-btn');
 
   // 状态变量
   let selectedTemplate = 'article_wechat'; // 默认模板
+  let selectedWorkflow = 'dify-general'; // 当前选中的工作流
+  let availableWorkflows = new Map(); // 可用工作流列表
   let generatedUrl = null;
   let isDarkTheme = localStorage.getItem('darkTheme') !== null ? localStorage.getItem('darkTheme') === 'true' : true; // 默认使用深色模式
   let isGeneratingArticle = false; // 用于跟踪文章生成状态
+  let isGeneratingFromUrl = false; // 用于跟踪URL工作流状态
 
   // 初始化应用
   function initializeApp() {
@@ -65,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 应用主题
     applyTheme();
+
+    // 初始化工作流选择器
+    initializeWorkflowSelector();
 
     // 确保模态框和加载动画初始化为隐藏状态
     aboutModal.classList.add('hidden');
@@ -497,10 +508,15 @@ def quicksort(arr):
     }
   }
 
-  // 从URL生成内容
+  // 从URL生成内容（支持流式处理）
   async function generateFromUrl() {
+    console.log('=== 使用动态工作流的generateFromUrl函数被调用 ===');
     const apiKey = apiKeyInput.value.trim();
     const url = targetUrlInput.value.trim();
+    
+    // 获取当前选中的工作流
+    const workflow = availableWorkflows.get(selectedWorkflow);
+    console.log('当前选中的工作流:', workflow);
 
     // 验证输入
     if (!apiKey) {
@@ -515,58 +531,63 @@ def quicksort(arr):
       return;
     }
 
+    if (!workflow) {
+      showNotification('请选择一个工作流', 'error');
+      return;
+    }
+    if (workflow.type !== 'url') {
+      showNotification('当前选择的工作流不支持URL处理，请选择URL类型的工作流', 'error');
+      return;
+    }
+
     try {
-      // 显示加载动画
-      loadingOverlay.classList.remove('hidden');
-
-      // 发送API请求
-      const response = await fetch('/api/v1/workflows/dify-general/execute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey
-        },
-        body: JSON.stringify({ inputs: { url } })
-      });
-
-      const data = await response.json();
-
-      // 确保无论如何都隐藏加载动画
-      loadingOverlay.classList.add('hidden');
-
-      if (!response.ok) {
-        throw new Error(data.message || '生成失败');
+      // 更新按钮状态
+      isGeneratingFromUrl = true;
+      generateFromUrlBtn.disabled = true;
+      generateFromUrlBtn.innerHTML = '<i class="icon ion-md-sync animated-spin"></i> 处理中...';
+      
+      // 显示状态指示器
+      if (urlWorkflowStatusIndicator) {
+        urlWorkflowStatusIndicator.innerHTML = '<span class="status-dot active"></span> 准备中...';
+        urlWorkflowStatusIndicator.classList.remove('hidden');
       }
 
-      if (data.success) {
-        // 保存API密钥（如果选择了记住）
-        if (rememberKeyCheckbox.checked) {
-          localStorage.setItem('apiKey', apiKey);
-        } else {
-          localStorage.removeItem('apiKey');
-        }
-
-        // 将生成的内容填入编辑器
-        markdownEditor.value = data.content;
-        showNotification('内容已生成', 'success');
+      // 保存API密钥（如果选择了记住）
+      if (rememberKeyCheckbox.checked) {
+        localStorage.setItem('apiKey', apiKey);
       } else {
-        throw new Error(data.message || '未知错误');
+        localStorage.removeItem('apiKey');
       }
+
+      // 构建流式API请求（使用动态工作流ID）
+      const apiUrl = `${window.location.protocol}//${window.location.host}/api/v1/workflows/${selectedWorkflow}/execute`;
+      const requestBody = { inputs: { url } };
+      
+      console.log(`请求URL: ${apiUrl}`);
+      console.log('请求参数:', { ...requestBody });
+      
+      // 开始API调用，使用POST请求
+      await fetchWithRetryUrl(apiUrl, requestBody, apiKey);
+      
     } catch (error) {
-      // 确保隐藏加载动画
-      loadingOverlay.classList.add('hidden');
+      console.error('URL处理错误:', error);
       showNotification(`错误: ${error.message}`, 'error');
+      completeUrlGeneration();
     }
   }
 
   // 生成文章内容
   async function generateArticleContent() {
-    console.log('=== 新版本的generateArticleContent函数被调用 ===');
+    console.log('=== 使用动态工作流的generateArticleContent函数被调用 ===');
     const apiKey = apiKeyInput.value.trim();
     console.log('API密钥值:', apiKey ? '已设置' : '未设置', '长度:', apiKey.length);
     const title = workflowTitleInput.value.trim();
     const style = workflowStyleInput.value.trim();
     const context = workflowContextInput.value.trim();
+    
+    // 获取当前选中的工作流
+    const workflow = availableWorkflows.get(selectedWorkflow);
+    console.log('当前选中的工作流:', workflow);
 
     // 验证输入
     if (!apiKey) {
@@ -578,6 +599,14 @@ def quicksort(arr):
     if (!title) {
       showNotification('请输入标题', 'error');
       workflowTitleInput.focus();
+      return;
+    }
+    if (!workflow) {
+      showNotification('请选择一个工作流', 'error');
+      return;
+    }
+    if (workflow.type !== 'text') {
+      showNotification('当前选择的工作流不支持文本生成，请选择文本类型的工作流', 'error');
       return;
     }
 
@@ -596,8 +625,8 @@ def quicksort(arr):
         localStorage.removeItem('apiKey');
       }
 
-      // 构建API请求
-      const apiUrl = `${window.location.protocol}//${window.location.host}/api/v1/workflows/dify-article/execute`;
+      // 构建API请求（使用动态工作流ID）
+      const apiUrl = `${window.location.protocol}//${window.location.host}/api/v1/workflows/${selectedWorkflow}/execute`;
       const requestBody = {
         title: title,
         style: style || '',
@@ -637,8 +666,13 @@ def quicksort(arr):
         // 配置消息处理
         currentEventSource.onmessage = (event) => {
           try {
+            console.log('=== SSE DEBUG: Raw message received ===');
+            console.log('Event data:', event.data);
+            console.log('Event type:', typeof event.data);
+            console.log('Event length:', event.data.length);
+            
             if (event.data === '[DONE]') {
-              console.log('接收到完成信号');
+              console.log('=== SSE DEBUG: Received DONE signal ===');
               currentEventSource.close();
               completeArticleGeneration();
               resolve();
@@ -646,22 +680,49 @@ def quicksort(arr):
             }
             
             const data = JSON.parse(event.data);
+            console.log('=== SSE DEBUG: Parsed data ===');
+            console.log('Data type:', data.type);
+            console.log('Full data object:', JSON.stringify(data, null, 2));
             
-            // 处理各类事件
-            if (data.status) {
+            // 处理不同类型的事件
+            if (data.type === 'complete' && data.content) {
+              console.log('=== SSE DEBUG: Complete event with content ===');
+              console.log(`生成完成，收到最终内容: ${data.content.length} 字符`);
+              console.log('Content preview (first 200 chars):', data.content.substring(0, 200));
+              markdownEditor.value = data.content;
+              markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+              currentEventSource.close();
+              completeArticleGeneration();
+              resolve();
+              return;
+            } else if (data.type === 'progress' && data.data && data.data.content) {
+              console.log('=== SSE DEBUG: Progress event ===');
+              console.log(`进度更新: 收到 ${data.data.content.length} 字符`);
+              console.log('Progress content preview:', data.data.content.substring(0, 100));
+              markdownEditor.value += data.data.content;
+              markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+            } else if (data.status) {
+              console.log('=== SSE DEBUG: Status event ===');
               console.log(`状态更新: ${data.status}`);
+              console.log('Has content field:', !!data.content);
+              console.log('Has result field:', !!data.result);
+              console.log('Has done field:', !!data.done);
               workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> ${data.status}`;
               
               // 如果有内容更新，填充到编辑器
               if (data.content) {
+                console.log('=== SSE DEBUG: Content update from status event ===');
                 console.log(`内容更新: 收到 ${data.content.length} 字符`);
+                console.log('Content preview:', data.content.substring(0, 200));
                 markdownEditor.value = data.content;
                 // 触发input事件以便可能的双向绑定能够更新
                 markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
               }
               // 新增: 处理data.result字段
               else if (data.result) {
+                console.log('=== SSE DEBUG: Result update from status event ===');
                 console.log(`内容更新 (result): 收到 ${data.result.length} 字符`);
+                console.log('Result preview:', data.result.substring(0, 200));
                 markdownEditor.value = data.result;
                 // 触发input事件以便可能的双向绑定能够更新
                 markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
@@ -669,19 +730,27 @@ def quicksort(arr):
               
               // 如果生成完成
               if (data.done) {
-                console.log('生成完成');
+                console.log('=== SSE DEBUG: Generation done ===');
                 currentEventSource.close();
                 completeArticleGeneration();
                 resolve();
               }
             } else if (data.error) {
               const errorMsg = data.error || '未知错误';
+              console.error('=== SSE DEBUG: Error event ===');
               console.error(`服务器返回错误: ${errorMsg}`);
               currentEventSource.close();
               reject(new Error(errorMsg));
+            } else {
+              console.log('=== SSE DEBUG: Unknown event type ===');
+              console.log('Unknown type:', data.type);
+              console.log('Full unknown data:', JSON.stringify(data, null, 2));
             }
           } catch (error) {
-            console.error('解析事件数据失败:', error, event.data);
+            console.error('=== SSE DEBUG: JSON Parse Error ===');
+            console.error('Parse error:', error);
+            console.error('Raw data that failed to parse:', event.data);
+            console.error('Raw data type:', typeof event.data);
           }
         };
         
@@ -751,57 +820,187 @@ def quicksort(arr):
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
           
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder();
+          // 检查响应的Content-Type来决定如何处理
+          const contentType = response.headers.get('content-type');
           
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          if (contentType && contentType.includes('application/json')) {
+            // 处理JSON响应
+            const data = await response.json();
+            console.log('收到JSON响应:', data);
+            console.log('markdownEditor元素:', markdownEditor);
+            console.log('markdownEditor是否存在:', !!markdownEditor);
             
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            // 提取内容 - 修复Dify工作流的响应解析
+            let content = null;
+            console.log('=== 响应数据结构分析 ===');
+            console.log('完整响应:', JSON.stringify(data, null, 2));
             
-            for (const line of lines) {
-              if (line.trim() === '') continue;
+            // 根据终端日志显示的实际响应格式进行解析
+            if (data.success && data.data && data.data.result) {
+              // 检查result是否是字符串（直接内容）
+              if (typeof data.data.result === 'string') {
+                content = data.data.result;
+                console.log('从data.data.result提取内容（字符串格式）');
+              }
+              // 检查result是否是对象且包含content字段
+              else if (data.data.result && typeof data.data.result === 'object' && data.data.result.content) {
+                content = data.data.result.content;
+                console.log('从data.data.result.content提取内容');
+              }
+              // 检查result是否是对象且包含answer字段
+              else if (data.data.result && typeof data.data.result === 'object' && data.data.result.answer) {
+                content = data.data.result.answer;
+                console.log('从data.data.result.answer提取内容');
+              }
+            }
+            // 备用提取路径
+            else if (data.content) {
+              content = data.content;
+              console.log('从data.content提取内容');
+            } else if (data.answer) {
+              content = data.answer;
+              console.log('从data.answer提取内容');
+            } else if (data.result) {
+              content = data.result;
+              console.log('从data.result提取内容');
+            }
+            
+            console.log('提取的内容:', content);
+            console.log('内容类型:', typeof content);
+            
+            if (content && content !== 'undefined') {
+              console.log(`生成完成，收到内容: ${content.length} 字符`);
+              if (markdownEditor) {
+                markdownEditor.value = content;
+                console.log('已设置markdownEditor.value:', markdownEditor.value.substring(0, 100) + '...');
+                markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                console.log('已触发input事件');
+              } else {
+                console.error('markdownEditor元素未找到!');
+              }
+            } else {
+              console.log('响应中没有有效内容');
+              if (markdownEditor) {
+                markdownEditor.value = '# 生成完成\n\n抱歉，本次生成没有返回内容。请尝试重新生成或检查输入参数。';
+                markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
+            
+            completeArticleGeneration();
+            resolve();
+            return;
+          } else {
+            // 处理流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
               
-              try {
-                if (line === '[DONE]') {
-                  console.log('接收到完成信号');
-                  completeArticleGeneration();
-                  resolve();
-                  return;
-                }
+              const chunk = decoder.decode(value);
+              const lines = chunk.split('\n');
+              
+              for (const line of lines) {
+                if (line.trim() === '') continue;
                 
-                const data = JSON.parse(line);
-                
-                if (data.status) {
-                  console.log(`状态更新: ${data.status}`);
-                  workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> ${data.status}`;
-                  
-                  if (data.content) {
-                    console.log(`内容更新: 收到 ${data.content.length} 字符`);
-                    markdownEditor.value = data.content;
-                    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
-                  } else if (data.result) {
-                    console.log(`内容更新 (result): 收到 ${data.result.length} 字符`);
-                    markdownEditor.value = data.result;
-                    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
-                  }
-                  
-                  if (data.done) {
-                    console.log('生成完成');
+                try {
+                  if (line === '[DONE]') {
+                    console.log('接收到完成信号');
                     completeArticleGeneration();
                     resolve();
                     return;
                   }
-                } else if (data.error) {
-                  const errorMsg = data.error || '未知错误';
-                  console.error(`服务器返回错误: ${errorMsg}`);
-                  reject(new Error(errorMsg));
-                  return;
+                  
+                  const data = JSON.parse(line);
+                  
+                  // 处理不同类型的事件
+                  console.log('=== POST STREAM DEBUG: Processing line ===');
+                  console.log('Line content:', line);
+                  console.log('Line type:', typeof line);
+                  
+                  if (data.type === 'complete') {
+                    console.log('=== POST STREAM DEBUG: Complete event ===');
+                    console.log('Complete data structure:', JSON.stringify(data, null, 2));
+                    console.log('Has hasContent field:', !!data.hasContent);
+                    console.log('HasContent value:', data.hasContent);
+                    console.log('Has content field:', !!data.content);
+                    console.log('Content value type:', typeof data.content);
+                    console.log('Content value:', data.content);
+                    
+                    // 修复：正确处理content字段，即使hasContent为false也要检查content
+                    if (data.content && data.content !== 'undefined' && data.content.trim()) {
+                      console.log('=== POST STREAM DEBUG: Valid content found ===');
+                      console.log(`生成完成，收到最终内容: ${data.content.length} 字符`);
+                      console.log('Content preview (first 200 chars):', data.content.substring(0, 200));
+                      markdownEditor.value = data.content;
+                      markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                      console.log('=== POST STREAM DEBUG: No valid content in complete event ===');
+                      console.log('完成事件中没有有效内容，保持当前编辑器内容');
+                      console.log('Current editor content length:', markdownEditor.value.length);
+                      // 如果编辑器仍然是空的，显示一个提示
+                      if (!markdownEditor.value.trim()) {
+                        console.log('=== POST STREAM DEBUG: Editor is empty, adding fallback content ===');
+                        markdownEditor.value = '# 文章生成完成\n\n抱歉，本次生成没有返回内容。请尝试重新生成或检查输入参数。';
+                        markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                      }
+                    }
+                    completeArticleGeneration();
+                    resolve();
+                    return;
+                  } else if (data.type === 'progress' && data.data && data.data.content) {
+                    console.log('=== POST STREAM DEBUG: Progress event ===');
+                    console.log(`进度更新: 收到 ${data.data.content.length} 字符`);
+                    console.log('Progress content preview:', data.data.content.substring(0, 100));
+                    markdownEditor.value += data.data.content;
+                    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                  } else if (data.status) {
+                    console.log('=== POST STREAM DEBUG: Status event ===');
+                    console.log(`状态更新: ${data.status}`);
+                    console.log('Has content field:', !!data.content);
+                    console.log('Has result field:', !!data.result);
+                    console.log('Has done field:', !!data.done);
+                    workflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> ${data.status}`;
+                    
+                    if (data.content && data.content !== 'undefined') {
+                      console.log('=== POST STREAM DEBUG: Content update from status ===');
+                      console.log(`内容更新: 收到 ${data.content.length} 字符`);
+                      console.log('Content preview:', data.content.substring(0, 200));
+                      markdownEditor.value = data.content;
+                      markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else if (data.result && data.result !== 'undefined') {
+                      console.log('=== POST STREAM DEBUG: Result update from status ===');
+                      console.log(`内容更新 (result): 收到 ${data.result.length} 字符`);
+                      console.log('Result preview:', data.result.substring(0, 200));
+                      markdownEditor.value = data.result;
+                      markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    
+                    if (data.done) {
+                      console.log('=== POST STREAM DEBUG: Generation done ===');
+                      completeArticleGeneration();
+                      resolve();
+                      return;
+                    }
+                  } else if (data.error) {
+                    const errorMsg = data.error || '未知错误';
+                    console.error('=== POST STREAM DEBUG: Error event ===');
+                    console.error(`服务器返回错误: ${errorMsg}`);
+                    reject(new Error(errorMsg));
+                    return;
+                  } else {
+                    console.log('=== POST STREAM DEBUG: Unknown event type ===');
+                    console.log('Unknown type:', data.type);
+                    console.log('Full unknown data:', JSON.stringify(data, null, 2));
+                  }
+                } catch (parseError) {
+                  console.error('=== POST STREAM DEBUG: Parse Error ===');
+                  console.error('Parse error:', parseError);
+                  console.error('Failed line:', line);
+                  console.error('Line type:', typeof line);
+                  console.error('Line length:', line.length);
                 }
-              } catch (parseError) {
-                console.error('解析响应数据失败:', parseError, line);
               }
             }
           }
@@ -922,6 +1121,209 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
         workflowStatusIndicator.classList.add('hidden');
       }
     }, 5000);
+  }
+
+  // 完成URL生成
+  function completeUrlGeneration() {
+    isGeneratingFromUrl = false;
+    generateFromUrlBtn.disabled = false;
+    generateFromUrlBtn.innerHTML = '<i class="icon ion-md-cloud-download"></i> 从URL生成';
+    
+    if (urlWorkflowStatusIndicator) {
+      urlWorkflowStatusIndicator.innerHTML = '<span class="status-dot completed"></span> 处理完成';
+      setTimeout(() => {
+        if (!isGeneratingFromUrl) {
+          urlWorkflowStatusIndicator.classList.add('hidden');
+        }
+      }, 3000);
+    }
+  }
+
+  // URL工作流的流式处理函数
+  async function fetchWithRetryUrl(url, requestBody, apiKey, maxRetries = 2) {
+    // 首先尝试流式处理
+    try {
+      await fetchWithRetryUrlStreaming(url, requestBody, apiKey, maxRetries);
+    } catch (error) {
+      console.log('流式处理失败，降级到阻塞模式:', error.message);
+      await fallbackToBlockingMode(url, requestBody, apiKey);
+    }
+  }
+
+  // URL工作流流式处理
+  async function fetchWithRetryUrlStreaming(apiUrl, requestBody, apiKey, maxRetries = 2) {
+    const streamUrl = `${apiUrl}?stream=true`;
+    
+    let currentRetry = 0;
+    let currentEventSource = null;
+    
+    return new Promise((resolve, reject) => {
+      function setupEventSource() {
+        if (currentEventSource && currentEventSource.readyState !== 2) {
+          currentEventSource.close();
+        }
+        
+        // 构建流式请求URL（需要POST数据的特殊处理）
+        const postData = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+          },
+          body: JSON.stringify(requestBody)
+        };
+        
+        // 使用fetch创建流式连接
+        setupStreamingFetch(streamUrl, postData, resolve, reject);
+      }
+      
+      function setupStreamingFetch(url, options, resolve, reject) {
+        fetch(url, options)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            
+            function readStream() {
+              return reader.read().then(({ done, value }) => {
+                if (done) {
+                  console.log('URL工作流流式读取完成');
+                  completeUrlGeneration();
+                  resolve();
+                  return;
+                }
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                let boundary;
+                while ((boundary = buffer.indexOf('\n')) !== -1) {
+                  const line = buffer.substring(0, boundary);
+                  buffer = buffer.substring(boundary + 1);
+                  
+                  if (!line.startsWith('data:')) continue;
+                  const data = line.slice(5).trim();
+                  
+                  if (data === '[DONE]') {
+                    console.log('收到URL工作流完成信号');
+                    completeUrlGeneration();
+                    resolve();
+                    return;
+                  }
+                  
+                  try {
+                    const parsedData = JSON.parse(data);
+                    console.log('=== URL WORKFLOW DEBUG: 收到事件 ===', parsedData.type);
+                    
+                    if (parsedData.type === 'complete' && parsedData.content) {
+                      console.log(`URL处理完成，收到内容: ${parsedData.content.length} 字符`);
+                      markdownEditor.value = parsedData.content;
+                      markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                      showNotification('内容已生成', 'success');
+                      completeUrlGeneration();
+                      resolve();
+                      return;
+                    } else if (parsedData.status) {
+                      if (urlWorkflowStatusIndicator) {
+                        urlWorkflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> ${parsedData.status}`;
+                      }
+                      
+                      if (parsedData.content) {
+                        markdownEditor.value = parsedData.content;
+                        markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+                      }
+                      
+                      if (parsedData.done) {
+                        completeUrlGeneration();
+                        resolve();
+                      }
+                    } else if (parsedData.type === 'error') {
+                      throw new Error(parsedData.message || '处理出错');
+                    }
+                  } catch (e) {
+                    console.error('URL工作流解析错误:', e);
+                  }
+                }
+                
+                return readStream();
+              });
+            }
+            
+            return readStream();
+          })
+          .catch(error => {
+            console.error('URL工作流流式连接错误:', error);
+            
+            if (currentRetry < maxRetries) {
+              currentRetry++;
+              const retryDelay = 1000 * currentRetry;
+              
+              if (urlWorkflowStatusIndicator) {
+                urlWorkflowStatusIndicator.innerHTML = `<span class="status-dot active"></span> 连接中断，${retryDelay/1000}秒后重试 (${currentRetry}/${maxRetries})...`;
+              }
+              
+              setTimeout(() => setupEventSource(), retryDelay);
+            } else {
+              console.log('所有重试均失败，抛出错误');
+              reject(error);
+            }
+          });
+      }
+      
+      setupEventSource();
+    });
+  }
+
+  // 降级到阻塞模式的函数
+  async function fallbackToBlockingMode(baseUrl, requestBody, apiKey) {
+    try {
+      if (urlWorkflowStatusIndicator) {
+        urlWorkflowStatusIndicator.innerHTML = '<span class="status-dot active"></span> 使用备用处理模式...';
+      }
+      
+      showNotification('正在使用备用处理模式', 'warning');
+      
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || '处理失败');
+      }
+      
+      if (data.success) {
+        let content = null;
+        if (data.data?.result?.content) {
+          content = data.data.result.content;
+        } else if (data.data?.result?.answer) {
+          content = data.data.result.answer;
+        } else if (data.content) {
+          content = data.content;
+        } else {
+          content = '无法获取生成内容';
+        }
+        
+        markdownEditor.value = content;
+        markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+        showNotification('内容已生成（备用模式）', 'success');
+      } else {
+        throw new Error(data.message || '未知错误');
+      }
+    } catch (error) {
+      showNotification(`处理失败: ${error.message}`, 'error');
+    }
+    completeUrlGeneration();
   }
 
   // ======= 事件监听器 =======
@@ -1164,7 +1566,161 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
   // 初始化按钮状态
   updateGenerateFromUrlButton();
 
-  // 添加文章生成按钮点击事件
+  // 工作流选择器相关函数
+  async function initializeWorkflowSelector() {
+    console.log('初始化工作流选择器...');
+    
+    // 初始化默认工作流
+    availableWorkflows.set('dify-general', {
+      id: 'dify-general',
+      name: 'URL内容生成',
+      description: '从网页链接生成内容',
+      type: 'url',
+      icon: 'ion-md-cloud-download',
+      isCustom: false
+    });
+    
+    availableWorkflows.set('dify-article', {
+      id: 'dify-article',
+      name: 'AI文章生成',
+      description: '基于关键词生成文章',
+      type: 'text',
+      icon: 'ion-md-create',
+      isCustom: false
+    });
+    
+    // 从服务器加载自定义工作流
+    await loadCustomWorkflows();
+    
+    // 渲染工作流选择器
+    renderWorkflowSelector();
+    
+    // 绑定工作流选择事件
+    bindWorkflowEvents();
+  }
+  
+  async function loadCustomWorkflows() {
+    try {
+      const response = await fetch('/api/v1/workflows/available');
+      if (response.ok) {
+        const { success, data } = await response.json();
+        if (success && data.custom) {
+          data.custom.forEach(workflow => {
+            availableWorkflows.set(workflow.id, {
+              ...workflow,
+              isCustom: true
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.log('加载自定义工作流失败:', error.message);
+    }
+  }
+  
+  function renderWorkflowSelector() {
+    const defaultWorkflows = Array.from(availableWorkflows.values()).filter(w => !w.isCustom);
+    const customWorkflows = Array.from(availableWorkflows.values()).filter(w => w.isCustom);
+    
+    workflowGrid.innerHTML = '';
+    
+    // 渲染默认工作流
+    defaultWorkflows.forEach(workflow => {
+      const workflowCard = createWorkflowCard(workflow);
+      workflowGrid.appendChild(workflowCard);
+    });
+    
+    // 渲染自定义工作流
+    customWorkflows.forEach(workflow => {
+      const workflowCard = createWorkflowCard(workflow);
+      workflowCard.classList.add('custom');
+      workflowGrid.appendChild(workflowCard);
+    });
+  }
+  
+  function createWorkflowCard(workflow) {
+    const isActive = workflow.id === selectedWorkflow;
+    const iconColor = workflow.type === 'url' ? 
+      'background-color: rgba(54, 112, 254, 0.1); color: #3670fe;' : 
+      'background-color: rgba(54, 179, 126, 0.1); color: #36b37e;';
+    
+    const card = document.createElement('div');
+    card.className = `workflow-card ${isActive ? 'active' : ''}`;
+    card.dataset.workflow = workflow.id;
+    card.dataset.type = workflow.type;
+    
+    card.innerHTML = `
+      <div class="workflow-icon" style="${iconColor}">
+        <i class="icon ${workflow.icon}"></i>
+      </div>
+      <div class="workflow-info">
+        <h4>${workflow.name}</h4>
+        <p>${workflow.description}</p>
+        <span class="workflow-type">${workflow.type === 'url' ? 'URL处理' : '文本生成'}</span>
+      </div>
+    `;
+    
+    return card;
+  }
+  
+  function bindWorkflowEvents() {
+    // 工作流选择事件
+    workflowGrid.addEventListener('click', (e) => {
+      const workflowCard = e.target.closest('.workflow-card');
+      if (workflowCard) {
+        selectWorkflow(workflowCard.dataset.workflow);
+      }
+    });
+    
+    // 添加自定义工作流按钮事件
+    addCustomWorkflowBtn.addEventListener('click', showAddWorkflowModal);
+  }
+  
+  function selectWorkflow(workflowId) {
+    if (!availableWorkflows.has(workflowId)) {
+      console.error('工作流不存在:', workflowId);
+      return;
+    }
+    
+    // 更新选中状态
+    selectedWorkflow = workflowId;
+    
+    // 更新UI
+    workflowGrid.querySelectorAll('.workflow-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.workflow === workflowId);
+    });
+    
+    // 更新界面可见性
+    updateWorkflowUI();
+    
+    console.log('选择了工作流:', workflowId);
+  }
+  
+  function updateWorkflowUI() {
+    const workflow = availableWorkflows.get(selectedWorkflow);
+    if (!workflow) return;
+    
+    // 根据工作流类型显示/隐藏相应的输入区域
+    const urlSection = document.querySelector('.url-section');
+    const workflowSection = document.querySelector('.workflow-section');
+    
+    if (workflow.type === 'url') {
+      // URL类型工作流：显示URL输入，隐藏文章生成
+      urlSection.style.display = 'block';
+      workflowSection.style.display = 'none';
+    } else if (workflow.type === 'text') {
+      // 文本类型工作流：显示文章生成，隐藏URL输入
+      urlSection.style.display = 'none';
+      workflowSection.style.display = 'block';
+    }
+  }
+  
+  function showAddWorkflowModal() {
+    // TODO: 实现添加自定义工作流的模态框
+    showNotification('自定义工作流功能即将推出', 'info');
+  }
+
+// 添加文章生成按钮点击事件
   if (generateArticleBtn) {
     generateArticleBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1174,4 +1730,34 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
 
   // 初始化应用
   initializeApp();
+  
+  // 自动填入测试数据并触发生成 - 已注释掉以显示placeholder效果
+  /*
+  setTimeout(() => {
+    // 先填入API密钥
+    const apiKeyInput = document.getElementById('api-key');
+    if (apiKeyInput) {
+      apiKeyInput.value = 'test-api-key-for-demo';
+      console.log('已自动填入测试API密钥');
+    }
+    
+    // 填入测试URL
+    const urlInput = document.getElementById('target-url');
+    if (urlInput) {
+      urlInput.value = 'https://x.com/GitHub_Daily/status/1954082721644392709';
+      console.log('已自动填入测试URL:', urlInput.value);
+      
+      // 再等待2秒后自动点击生成按钮
+      setTimeout(() => {
+        const generateBtn = document.getElementById('generate-from-url');
+        if (generateBtn && !generateBtn.disabled) {
+          console.log('自动触发文章生成...');
+          generateBtn.click();
+        } else {
+          console.log('生成按钮不可用或未找到');
+        }
+      }, 2000);
+    }
+  }, 1000);
+  */
 });

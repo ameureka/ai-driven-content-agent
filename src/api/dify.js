@@ -119,3 +119,196 @@ export async function callDifyWorkflow(url, apiKey, maxRetries = 2, timeoutMs = 
   // 如果循环结束仍未成功（理论上不应发生，因为错误会抛出）
   throw new Error(`调用Dify URL工作流最终失败 (重试 ${maxRetries} 次后)`);
 }
+
+/**
+ * 调用Dify工作流API (URL生成，流式模式)
+ * @param {string} url - 要处理的URL
+ * @param {string} apiKey - Dify API密钥
+ * @param {Object} callbacks - 回调函数
+ * @param {Function} callbacks.onStart - 开始处理时的回调
+ * @param {Function} callbacks.onProgress - 处理进度回调
+ * @param {Function} callbacks.onComplete - 完成处理时的回调
+ * @param {Function} callbacks.onError - 错误处理回调
+ * @param {number} maxRetries - 最大重试次数
+ * @returns {Promise<string>} - 返回生成的内容
+ */
+export function callDifyWorkflowStreaming(url, apiKey, callbacks = {}, maxRetries = 2) {
+  return new Promise(async (resolve, reject) => {
+    const { onStart, onProgress, onComplete, onError } = callbacks;
+    
+    // 日志和回调辅助函数
+    const log = (message, data = null) => {
+      const logMsg = data ? `${message}: ${JSON.stringify(data).substring(0, 100)}${JSON.stringify(data).length > 100 ? '...' : ''}` : message;
+      console.log(logMsg);
+    };
+
+    const notify = (status, data = {}) => {
+      if (onProgress) onProgress(status, data);
+    };
+
+    if (onStart) onStart();
+    log(`开始调用Dify URL工作流 (流式): ${url}`);
+
+    let streamTimeout;
+
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        clearTimeout(streamTimeout);
+        streamTimeout = setTimeout(() => {
+          reject(new Error("Stream timed out after 60 seconds of inactivity."));
+        }, 60000); // 60秒无数据超时
+
+        const response = await fetch(`${DIFY_API_URL}/workflows/run`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            inputs: { url },
+            response_mode: "streaming", // 关键改动：启用流式模式
+            user: "url-renderer-streaming"
+          }),
+          signal: AbortSignal.timeout(300000), // 5分钟超时
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API响应错误 (${response.status}): ${errorText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let finalContent = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            log("流读取完成");
+            clearTimeout(streamTimeout);
+            if (onComplete) onComplete(finalContent);
+            resolve(finalContent);
+            return;
+          }
+
+          clearTimeout(streamTimeout);
+          streamTimeout = setTimeout(() => {
+            reject(new Error("Stream timed out after 60 seconds of inactivity."));
+          }, 60000);
+
+          const chunk = decoder.decode(value, { stream: true });
+          log(`Received chunk`, chunk);
+          buffer += chunk;
+
+          let boundary;
+          while ((boundary = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.substring(0, boundary);
+            buffer = buffer.substring(boundary + 1);
+
+            if (!line.startsWith("data:")) continue;
+            const data = line.slice(5).trim();
+            log(`Received raw data: ${data}`);
+
+            if (data === "[DONE]") {
+              log("收到流结束标记 [DONE]");
+              clearTimeout(streamTimeout);
+              if (onComplete) onComplete(finalContent);
+              resolve(finalContent);
+              return;
+            }
+
+            try {
+              const parsedData = JSON.parse(data);
+              console.log("=== URL WORKFLOW DEBUG: Parsed data ===");
+              console.log("Event type:", parsedData.event);
+              console.log("Full parsed data:", JSON.stringify(parsedData, null, 2));
+              
+              if (parsedData.event === 'workflow_finished') {
+                console.log('=== URL WORKFLOW DEBUG: workflow_finished event ===');
+                console.log('Event data:', JSON.stringify(parsedData.data, null, 2));
+                
+                // 提取最终结果 - 复用difyArticle.js的逻辑
+                let extractedContent = extractContentFromResponse(parsedData.data);
+                if (extractedContent) {
+                  finalContent = extractedContent;
+                  console.log('=== URL WORKFLOW DEBUG: Final content set ===');
+                  console.log('Final content length:', finalContent.length);
+                }
+                
+                clearTimeout(streamTimeout);
+                if (onComplete) onComplete(finalContent);
+                resolve(finalContent);
+                return;
+              } else if (parsedData.event === 'node_finished') {
+                console.log('=== URL WORKFLOW DEBUG: node_finished event ===');
+                
+                // 检查是否有输出内容
+                if (parsedData.data && parsedData.data.outputs) {
+                  let nodeContent = extractContentFromResponse(parsedData.data);
+                  if (nodeContent && (!finalContent || nodeContent.length > finalContent.length)) {
+                    finalContent = nodeContent;
+                    console.log('=== URL WORKFLOW DEBUG: Updated content from node_finished ===');
+                  }
+                }
+              } else if (parsedData.event === 'text_chunk') {
+                console.log("=== URL WORKFLOW DEBUG: Text chunk event ===");
+                if (parsedData.data && parsedData.data.text) {
+                  finalContent += parsedData.data.text;
+                  notify('接收内容', { content: parsedData.data.text });
+                }
+              }
+              
+              // 进度更新
+              if (onProgress) {
+                onProgress(`处理中: ${parsedData.event}`, { event: parsedData.event });
+              }
+              
+            } catch (e) {
+              console.error("=== URL WORKFLOW DEBUG: Parse error ===");
+              console.error("Parse error:", e.message);
+              console.error("Raw data that failed to parse:", data);
+            }
+          }
+        }
+        
+      } catch (error) {
+        log(`第 ${attempt} 次尝试失败: ${error.message}`);
+        if (attempt > maxRetries) {
+          log('所有重试都失败');
+          if (onError) onError(error);
+          reject(error);
+          return;
+        }
+        await new Promise(res => setTimeout(res, 2000 * attempt));
+      }
+    }
+  });
+}
+
+// 内容提取辅助函数 - 与difyArticle.js保持一致
+function extractContentFromResponse(data) {
+  if (!data) return null;
+  
+  const possibleFields = ['out', 'text', 'content', 'result', 'answer', 'output'];
+  
+  // 先检查outputs字段
+  if (data.outputs) {
+    for (const field of possibleFields) {
+      if (data.outputs[field]) {
+        console.log(`=== URL WORKFLOW DEBUG: Found content in outputs.${field} ===`);
+        return data.outputs[field];
+      }
+    }
+  }
+  
+  // 再检查data字段本身
+  for (const field of possibleFields) {
+    if (data[field]) {
+      console.log(`=== URL WORKFLOW DEBUG: Found content in data.${field} ===`);
+      return data[field];
+    }
+  }
+  
+  return null;
+}

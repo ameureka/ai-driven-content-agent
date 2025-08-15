@@ -98,9 +98,10 @@ export class TemplateManager {
    * @param {string} templateName 模板名称
    * @param {string} title 标题
    * @param {string} content HTML 内容
+   * @param {Object} metadata 元数据
    * @returns {string} 完整的 HTML 页面
    */
-  static render(templateName, title, content) {
+  static render(templateName, title, content, metadata = {}) {
     try {
       console.log(`render: 开始渲染模板 "${templateName}" 标题: "${title?.substring(0, 30)}..."`);
       
@@ -110,7 +111,14 @@ export class TemplateManager {
         throw new Error(`模板 "${templateName}" 不存在或没有render方法`);
       }
       
-      const result = template.render(title, content);
+      // 构造模板期望的数据格式
+      const data = {
+        title: title || '',
+        content: content || '',
+        ...metadata
+      };
+      
+      const result = template.render(data);
       console.log(`render: 模板渲染成功`);
       return result;
     } catch (error) {

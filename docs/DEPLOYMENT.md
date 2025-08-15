@@ -4,6 +4,67 @@
 
 本文档提供了AI驱动内容代理项目在Cloudflare Workers平台上的完整部署指南，包括环境配置、依赖安装、部署流程和运维管理。
 
+## 最新更新记录
+
+### 2024-12-19 - Dify工作流响应解析修复
+
+=== DIFY API DEBUG: No content found in workflow_finished ===
+Full event data: {
+  "event": "workflow_finished",
+  "workflow_run_id": "d6651477-5cce-4934-953d-d346b8e01ac3",
+  "task_id": "f20c1496-ab48-4ec8-89b4-9c37c26bd269",
+  "data": {
+    "id": "d6651477-5cce-4934-953d-d346b8e01ac3",
+    "workflow_id": "5ba468e4-3084-46e2-b303-aac4258d0003",
+    "status": "succeeded",
+    "outputs": {
+      "out": "## 深度解读！人工智能在教育领域的应用与发展趋势：8 大变革点，重塑学习体验\n\n### 前言：\n\n教育的未来正在以前所未有的速度发生改变。 人工智能 (AI) 正深刻地渗透到教育的每一个角落。 从个性化学习体验到智能评估系统，从虚拟助教到智能内容生成，AI 正在推动着教育的变革。 本文将深入探讨**人工智能在教育领域的应用与发展趋势**，阐述 AI 如何改变我们学习、教学和思考的方式，并展望未来教育的发展。\n\n### 人工智能在教育领域的应用与发展趋势：一场静悄
+
+
+**问题描述：**
+- AI工作流在后端正常执行并返回正确结果
+- 终端日志显示工作流监控正常，每个步骤都被正确检测
+- 但前端Markdown编辑器中显示的内容不正确，无法正确提取工作流生成的内容
+
+**根本原因：**
+- 前端`fetchWithRetryPost`函数中的响应解析逻辑不完善
+- 没有正确处理Dify工作流返回的`data.data.result`字段结构
+- 缺少对不同响应格式的兼容性处理
+
+**修复方案：**
+1. **增强响应数据结构分析**：添加完整的响应数据日志输出
+2. **优化内容提取逻辑**：
+   - 优先检查`data.data.result`是否为字符串（直接内容）
+   - 支持`data.data.result.content`对象格式
+   - 支持`data.data.result.answer`对象格式
+   - 保留备用提取路径（`data.content`、`data.answer`、`data.result`）
+3. **改进错误处理**：增加详细的调试日志和类型检查
+
+**修复文件：**
+- `public/script.js` - 第829-859行，`fetchWithRetryPost`函数中的内容提取逻辑
+
+**验证结果：**
+- 工作流执行正常，后端响应正确
+- 前端能够正确解析和显示生成的内容
+- Markdown编辑器正确更新内容
+
+**技术细节：**
+```javascript
+// 修复前的问题代码
+if (data.success && data.data && data.data.result && data.data.result.content) {
+  content = data.data.result.content;
+}
+
+// 修复后的改进代码
+if (data.success && data.data && data.data.result) {
+  if (typeof data.data.result === 'string') {
+    content = data.data.result; // 直接字符串内容
+  } else if (data.data.result && typeof data.data.result === 'object' && data.data.result.content) {
+    content = data.data.result.content; // 对象包含content字段
+  }
+}
+```
+
 ## 前置要求
 
 ### 系统要求

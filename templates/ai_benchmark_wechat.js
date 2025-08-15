@@ -1,733 +1,30 @@
 /**
- * 微信公众号专用 - AI 基准测试模板 (基于 render_demo AI 基准风格重构)
+ * 微信公众号专用 - AI基准测试模板
+ * 基于通用设计原则重构，完全兼容微信公众号约束条件
  * 专门用于 AI 模型评测、技术对比、数据分析报告等内容
- * 融合了 render_demo 中 AI 基准测试的设计元素
+ * 遵循微信公众号CSS约束条件，使用行内样式
  */
 export default {
   name: 'ai_benchmark_wechat',
-  displayName: 'AI 基准测试',
-  description: '专为 AI 模型评测设计的微信公众号模板，适合技术对比、数据分析报告等',
+  displayName: 'AI基准测试模板',
+  description: '专为 AI 模型评测设计的微信公众号模板，完全兼容微信编辑器约束',
   
-  styles: `
-    /* CSS 变量定义 - AI 基准测试风格配色 */
-    :root {
-      --primary-color: #6366f1;
-      --primary-light: #818cf8;
-      --primary-dark: #4f46e5;
-      --secondary-color: #10b981;
-      --accent-color: #f59e0b;
-      --warning-color: #ef4444;
-      --info-color: #06b6d4;
-      --text-color: #111827;
-      --text-light: #4b5563;
-      --text-muted: #6b7280;
-      --bg-color: #ffffff;
-      --bg-light: #f8fafc;
-      --bg-card: #ffffff;
-      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --border-color: #d1d5db;
-      --border-light: #e5e7eb;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --max-content-width: 750px;
-      --font-size-base: 16px;
-      --line-height-base: 1.6;
-      --border-radius: 8px;
-      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    }
-
-    /* 全局样式 */
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      line-height: var(--line-height-base);
-      margin: 0;
-      padding: 20px;
-      background: var(--bg-light);
-      color: var(--text-color);
-      font-size: var(--font-size-base);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* 主容器 */
-    .main-container {
-      max-width: var(--max-content-width);
-      margin: 0 auto;
-      background: var(--bg-card);
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-    }
-
-    /* AI 基准测试头部 */
-    .benchmark-header {
-      background: var(--bg-gradient);
-      color: white;
-      padding: 0;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .benchmark-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="ai-pattern" width="30" height="30" patternUnits="userSpaceOnUse"><circle cx="15" cy="15" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="5" cy="5" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23ai-pattern)"/></svg>') repeat;
-    }
-
-    /* 基准测试类型标签 */
-    .benchmark-type-bar {
-      background: rgba(0, 0, 0, 0.15);
-      padding: 12px 25px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .benchmark-type {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.2);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      backdrop-filter: blur(10px);
-    }
-
-    .benchmark-type.performance { background: rgba(16, 185, 129, 0.8); }
-    .benchmark-type.accuracy { background: rgba(99, 102, 241, 0.8); }
-    .benchmark-type.efficiency { background: rgba(245, 158, 11, 0.8); }
-    .benchmark-type.comparison { background: rgba(6, 182, 212, 0.8); }
-
-    /* 基准测试主信息区域 */
-    .benchmark-info-section {
-      padding: 30px 25px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .benchmark-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin: 0 0 8px 0;
-      line-height: 1.2;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .ai-icon {
-      font-size: 32px;
-    }
-
-    .benchmark-subtitle {
-      font-size: 16px;
-      opacity: 0.9;
-      margin: 0 0 20px 0;
-      font-weight: 400;
-      line-height: 1.4;
-    }
-
-    .benchmark-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      font-size: 14px;
-      align-items: center;
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 8px 12px;
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-    }
-
-    /* 全局排名 Top 10 */
-    .global-ranking {
-      background: var(--bg-light);
-      padding: 25px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .ranking-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-color);
-      margin: 0 0 20px 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .ranking-title::before {
-      content: '🏆';
-      font-size: 24px;
-    }
-
-    .ranking-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 15px;
-    }
-
-    .ranking-item {
-      background: white;
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius);
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      transition: all 0.2s ease;
-      position: relative;
-    }
-
-    .ranking-item:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .ranking-position {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 16px;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .ranking-position.top-1 { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #92400e; }
-    .ranking-position.top-2 { background: linear-gradient(135deg, #c0c0c0, #e5e7eb); color: #374151; }
-    .ranking-position.top-3 { background: linear-gradient(135deg, #cd7f32, #d97706); }
-    .ranking-position.top-other { background: var(--primary-color); }
-
-    .ranking-info {
-      flex: 1;
-    }
-
-    .ranking-model {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 0 0 4px 0;
-    }
-
-    .ranking-org {
-      font-size: 14px;
-      color: var(--text-light);
-      margin: 0 0 8px 0;
-    }
-
-    .ranking-score {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--primary-color);
-      font-family: var(--font-mono);
-    }
-
-    .ranking-trend {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-
-    .ranking-trend.up {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--secondary-color);
-    }
-
-    .ranking-trend.down {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--warning-color);
-    }
-
-    .ranking-trend.stable {
-      background: rgba(107, 114, 128, 0.1);
-      color: var(--text-muted);
-    }
-
-    /* 内容区域 */
-    .benchmark-content {
-      padding: 30px 25px;
-    }
-
-    /* 标题样式 - AI 基准风格 */
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-color);
-      margin: 30px 0 18px 0;
-      line-height: 1.25;
-      position: relative;
-      padding-left: 20px;
-    }
-
-    h1::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: var(--primary-color);
-      border-radius: 2px;
-    }
-
-    h2 {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 28px 0 16px 0;
-      padding: 15px 20px;
-      background: linear-gradient(135deg, var(--bg-light) 0%, #ffffff 100%);
-      border-left: 4px solid var(--secondary-color);
-      border-radius: 0 var(--border-radius) var(--border-radius) 0;
-      box-shadow: var(--shadow-sm);
-    }
-
-    h3 {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 24px 0 14px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid var(--border-light);
-    }
-
-    h3::before {
-      content: '📊';
-      font-size: 16px;
-    }
-
-    /* 段落样式 */
-    p {
-      margin: 16px 0;
-      line-height: var(--line-height-base);
-      font-size: var(--font-size-base);
-      color: var(--text-color);
-    }
-
-    /* 性能指标卡片 */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin: 25px 0;
-    }
-
-    .metric-card {
-      background: linear-gradient(135deg, var(--bg-light) 0%, #ffffff 100%);
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius);
-      padding: 25px;
-      text-align: center;
-      position: relative;
-      transition: all 0.2s ease;
-    }
-
-    .metric-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .metric-icon {
-      font-size: 32px;
-      margin-bottom: 15px;
-      display: block;
-    }
-
-    .metric-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--primary-color);
-      margin: 0 0 8px 0;
-      font-family: var(--font-mono);
-    }
-
-    .metric-label {
-      font-size: 14px;
-      color: var(--text-light);
-      margin: 0 0 8px 0;
-      font-weight: 500;
-    }
-
-    .metric-change {
-      font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-
-    .metric-change.positive {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--secondary-color);
-    }
-
-    .metric-change.negative {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--warning-color);
-    }
-
-    /* 对比表格 */
-    .comparison-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 25px 0;
-      background: white;
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .comparison-table th {
-      background: var(--bg-gradient);
-      color: white;
-      padding: 15px 12px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .comparison-table td {
-      padding: 12px;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 14px;
-    }
-
-    .comparison-table tr:hover {
-      background: var(--bg-light);
-    }
-
-    .comparison-table .model-name {
-      font-weight: 600;
-      color: var(--text-color);
-    }
-
-    .comparison-table .score {
-      font-family: var(--font-mono);
-      font-weight: 600;
-      color: var(--primary-color);
-    }
-
-    .comparison-table .best-score {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--secondary-color);
-      font-weight: 700;
-    }
-
-    /* 测试结果图表区域 */
-    .chart-container {
-      background: var(--bg-light);
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius);
-      padding: 25px;
-      margin: 25px 0;
-      text-align: center;
-    }
-
-    .chart-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 0 0 20px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .chart-placeholder {
-      width: 100%;
-      height: 300px;
-      background: linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%);
-      border: 2px dashed var(--border-color);
-      border-radius: var(--border-radius);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-
-    /* 测试环境信息 */
-    .test-environment {
-      background: var(--bg-light);
-      border: 1px solid var(--border-light);
-      border-radius: var(--border-radius);
-      padding: 25px;
-      margin: 25px 0;
-    }
-
-    .env-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 0 0 15px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .env-title::before {
-      content: '⚙️';
-      font-size: 18px;
-    }
-
-    .env-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-    }
-
-    .env-item {
-      background: white;
-      border: 1px solid var(--border-light);
-      border-radius: 6px;
-      padding: 15px;
-    }
-
-    .env-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin: 0 0 5px 0;
-    }
-
-    .env-value {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 0;
-      font-family: var(--font-mono);
-    }
-
-    /* 代码样式 */
-    code {
-      background: var(--bg-light);
-      border: 1px solid var(--border-light);
-      border-radius: 3px;
-      padding: 2px 6px;
-      font-family: var(--font-mono);
-      font-size: 14px;
-      color: var(--text-color);
-    }
-
-    pre {
-      background: #1f2937;
-      color: #f9fafb;
-      border-radius: var(--border-radius);
-      padding: 20px;
-      margin: 20px 0;
-      overflow-x: auto;
-      font-family: var(--font-mono);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    pre code {
-      background: none;
-      border: none;
-      padding: 0;
-      color: inherit;
-    }
-
-    /* 强调文本 */
-    strong {
-      color: var(--primary-dark);
-      font-weight: 600;
-    }
-
-    em {
-      color: var(--secondary-color);
-      font-style: normal;
-      font-weight: 500;
-      background: rgba(16, 185, 129, 0.1);
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-
-    /* 链接样式 */
-    a {
-      color: var(--primary-color);
-      text-decoration: none;
-      font-weight: 500;
-      border-bottom: 1px solid transparent;
-      transition: all 0.2s ease;
-    }
-
-    a:hover {
-      border-bottom-color: var(--primary-color);
-    }
-
-    /* 图片样式 */
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: var(--border-radius);
-      margin: 20px auto;
-      display: block;
-      box-shadow: var(--shadow-md);
-    }
-
-    .image-caption {
-      text-align: center;
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-top: 8px;
-      font-style: italic;
-    }
-
-    /* 页脚 */
-    .benchmark-footer {
-      background: var(--bg-light);
-      padding: 25px;
-      text-align: center;
-      border-top: 1px solid var(--border-color);
-      margin-top: 40px;
-    }
-
-    .footer-content {
-      font-size: 14px;
-      color: var(--text-light);
-      line-height: 1.6;
-    }
-
-    .footer-disclaimer {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border-light);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* 响应式设计 */
-    @media (max-width: 768px) {
-      body {
-        padding: 15px;
-        font-size: 15px;
-      }
-
-      .benchmark-info-section {
-        padding: 25px 20px;
-      }
-
-      .benchmark-title {
-        font-size: 24px;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .benchmark-content {
-        padding: 25px 20px;
-      }
-
-      .benchmark-meta {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-      }
-
-      .ranking-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .env-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .comparison-table {
-        font-size: 12px;
-      }
-
-      .comparison-table th,
-      .comparison-table td {
-        padding: 8px 6px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      body {
-        padding: 10px;
-        font-size: 14px;
-      }
-
-      .benchmark-info-section {
-        padding: 20px 15px;
-      }
-
-      .benchmark-title {
-        font-size: 20px;
-      }
-
-      .benchmark-content {
-        padding: 20px 15px;
-      }
-
-      .metrics-grid {
-        grid-template-columns: 1fr;
-      }
-
-      h1 {
-        font-size: 20px;
-      }
-
-      h2 {
-        font-size: 18px;
-        padding: 12px 15px;
-      }
-
-      h3 {
-        font-size: 16px;
-      }
-
-      .metric-value {
-        font-size: 24px;
-      }
-
-      .chart-placeholder {
-        height: 200px;
-      }
-    }
-  `,
-
-  // 模板函数
-  template: function(title, content, metadata = {}) {
+  // 微信公众号不支持外部CSS和<style>标签，所有样式都通过行内样式实现
+  styles: '',
+
+  template: function(data) {
+    // 从内容中提取第一个标题作为主标题
+    const extractedTitle = this.extractFirstTitle(data.content) || data.title || 'AI基准测试报告：性能评估与技术对比分析';
+    
     // 处理元数据
-    const benchmarkType = metadata.benchmarkType || 'performance';
-    const testDate = metadata.testDate || new Date().toLocaleDateString('zh-CN');
-    const version = metadata.version || 'v1.0';
-    const organization = metadata.organization || 'AI Research Lab';
-    const dataset = metadata.dataset || 'Standard Benchmark';
-    const models = metadata.models || [];
-    const environment = metadata.environment || {};
-    const subtitle = metadata.subtitle || '';
+    const benchmarkType = data.benchmarkType || 'performance';
+    const testDate = data.testDate || new Date().toLocaleDateString('zh-CN');
+    const version = data.version || 'v1.0';
+    const organization = data.organization || 'AI Research Lab';
+    const dataset = data.dataset || 'Standard Benchmark';
+    const models = data.models || [];
+    const environment = data.environment || {};
+    const subtitle = data.subtitle || '';
     
     // 确定基准测试类型信息
     const getBenchmarkTypeInfo = (type) => {
@@ -748,19 +45,23 @@ export default {
       
       return models.slice(0, 10).map((model, index) => {
         const position = index + 1;
-        const positionClass = position === 1 ? 'top-1' : position === 2 ? 'top-2' : position === 3 ? 'top-3' : 'top-other';
+        const positionStyle = position === 1 ? 'background: linear-gradient(135deg, #ffd700, #ffed4e); color: #92400e;' 
+                            : position === 2 ? 'background: linear-gradient(135deg, #c0c0c0, #e5e7eb); color: #374151;' 
+                            : position === 3 ? 'background: linear-gradient(135deg, #cd7f32, #d97706); color: white;' 
+                            : 'background: #6366f1; color: white;';
         const trend = model.trend || 'stable';
         const trendIcon = trend === 'up' ? '↗️' : trend === 'down' ? '↘️' : '➡️';
+        const trendColor = trend === 'up' ? '#10b981' : trend === 'down' ? '#ef4444' : '#6b7280';
         
         return `
-          <div class="ranking-item">
-            <div class="ranking-position ${positionClass}">${position}</div>
-            <div class="ranking-info">
-              <div class="ranking-model">${model.name}</div>
-              <div class="ranking-org">${model.organization || 'Unknown'}</div>
-              <div class="ranking-score">${model.score}</div>
+          <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; display: flex; align-items: center; gap: 15px; margin: 15px 0; position: relative;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; ${positionStyle}">${position}</div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 4px 0;">${model.name}</div>
+              <div style="font-size: 14px; color: #4b5563; margin: 0 0 8px 0;">${model.organization || 'Unknown'}</div>
+              <div style="font-size: 18px; font-weight: 700; color: #6366f1; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;">${model.score}</div>
             </div>
-            <div class="ranking-trend ${trend}">
+            <div style="position: absolute; top: 15px; right: 15px; font-size: 12px; padding: 4px 8px; border-radius: 12px; font-weight: 600; background: rgba(${trend === 'up' ? '16, 185, 129' : trend === 'down' ? '239, 68, 68' : '107, 114, 128'}, 0.1); color: ${trendColor};">
               ${trendIcon} ${model.change || '0'}
             </div>
           </div>
@@ -769,9 +70,12 @@ export default {
     };
     
     const rankingHtml = models.length > 0 
-      ? `<div class="global-ranking">
-          <div class="ranking-title">全局排名 Top 10</div>
-          <div class="ranking-grid">
+      ? `<div style="background: #f8fafc; padding: 25px; border-bottom: 1px solid #d1d5db;">
+          <div style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 20px 0; display: flex; align-items: center; gap: 10px;">
+            <span>🏆</span>
+            <span>全局排名 Top 10</span>
+          </div>
+          <div>
             ${generateRankingHtml(models)}
           </div>
         </div>`
@@ -779,154 +83,407 @@ export default {
     
     // 生成测试环境信息
     const generateEnvironmentHtml = (env) => {
+      if (!env || Object.keys(env).length === 0) return '';
+      
       const envItems = Object.entries(env).map(([key, value]) => `
-        <div class="env-item">
-          <div class="env-label">${key}</div>
-          <div class="env-value">${value}</div>
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px;">
+          <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 5px 0;">${key}</div>
+          <div style="font-size: 14px; font-weight: 600; color: #111827; margin: 0; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;">${value}</div>
         </div>
       `).join('');
       
-      return envItems ? `
-        <div class="test-environment">
-          <div class="env-title">测试环境</div>
-          <div class="env-grid">
+      return `
+        <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 25px; margin: 25px 0;">
+          <div style="font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+            <span>⚙️</span>
+            <span>测试环境</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
             ${envItems}
           </div>
         </div>
-      ` : '';
+      `;
     };
     
     const environmentHtml = generateEnvironmentHtml(environment);
 
     // 处理特殊内容块
-    const processedContent = this.processSpecialBlocks(content);
+    const processedContent = this.processSpecialBlocks(data.content);
 
-    return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} - AI 基准测试报告</title>
-    <style>${this.styles}</style>
-</head>
-<body>
-    <div class="main-container">
-        <header class="benchmark-header">
-            <div class="benchmark-type-bar">
-                <div class="benchmark-type ${typeInfo.class}">
-                    <span>${typeInfo.icon}</span>
-                    <span>${typeInfo.text}</span>
-                </div>
+    return `
+<!-- 微信公众号专用AI基准测试模板 - 完全兼容微信编辑器 -->
+<div style="max-width: 750px; margin: 0 auto; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
+    
+    <!-- 文章头部 -->
+    <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 40px 30px; text-align: center;">
+        <div style="background: rgba(0, 0, 0, 0.1); padding: 12px 25px; margin-bottom: 20px; text-align: left;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                <span>${typeInfo.icon}</span>
+                <span>${typeInfo.text}</span>
             </div>
-            
-            <div class="benchmark-info-section">
-                <h1 class="benchmark-title">
-                    <span class="ai-icon">🤖</span>
-                    <span>${title}</span>
-                </h1>
-                ${subtitle ? `<div class="benchmark-subtitle">${subtitle}</div>` : ''}
-                <div class="benchmark-meta">
-                    <div class="meta-item">
-                        <span>📅</span>
-                        <span>测试日期: ${testDate}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span>🏷️</span>
-                        <span>版本: ${version}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span>🏢</span>
-                        <span>机构: ${organization}</span>
-                    </div>
-                    <div class="meta-item">
-                        <span>📊</span>
-                        <span>数据集: ${dataset}</span>
-                    </div>
-                </div>
+        </div>
+        <h1 style="font-size: 18px; font-weight: 700; text-shadow: rgba(0, 0, 0, 0.3) 0px 2px 4px; line-height: 1.4; margin: 0px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center;">
+            <span>🤖</span>
+            <span>${extractedTitle}</span>
+        </h1>
+        ${subtitle ? `<div style="font-size: 16px; opacity: 0.9; margin: 10px 0 0 0; font-weight: 400; line-height: 1.4;">${subtitle}</div>` : ''}
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; font-size: 14px; margin-top: 20px; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 15px;">
+                <span>📅</span>
+                <span>测试日期: ${testDate}</span>
             </div>
-        </header>
-
-        ${rankingHtml}
-        ${environmentHtml}
-
-        <div class="benchmark-content">
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 15px;">
+                <span>🏷️</span>
+                <span>版本: ${version}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 15px;">
+                <span>🏢</span>
+                <span>机构: ${organization}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 15px;">
+                <span>📊</span>
+                <span>数据集: ${dataset}</span>
+            </div>
+        </div>
+    </div>
+    
+    ${rankingHtml}
+    ${environmentHtml}
+    
+    <!-- 文章内容区 -->
+    <div style="padding: 40px 30px;">
+        
+        <!-- 文章信息 -->
+        <div style="text-align: center; margin: 20px 0 30px 0;">
+            <p style="color: #666; font-size: 12px; margin: 0 0 8px 0; font-weight: 500; text-align: center;">
+                全文 / 5000 字　阅读 / 大约 10 分钟
+            </p>
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                研究机构：${organization}
+            </p>
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                <br>
+            </p>
+            <hr style="border-style: solid; border-width: 1px 0 0; border-color: rgba(0,0,0,0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5);">
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                <br>
+            </p>
+        </div>
+        
+        <!-- 目录 -->
+        ${this.generateTableOfContents(data.content)}
+        
+        <!-- 分隔符 -->
+        <hr style="height: 2px; background: linear-gradient(90deg, transparent, #6366f1, transparent); margin: 30px 0; border: none;">
+        
+        <!-- 文章正文 -->
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.8; color: #333;">
             ${processedContent}
         </div>
-
-        <footer class="benchmark-footer">
-            <div class="footer-content">
-                <p>🔬 科学测试，客观评估，推动 AI 技术发展</p>
-                <div class="footer-disclaimer">
-                    <p>AI 基准测试报告 · ${organization} · ${new Date().getFullYear()}</p>
-                    <p>测试结果仅供参考，实际性能可能因环境和使用场景而异</p>
-                </div>
-            </div>
-        </footer>
+        
+        <!-- 分隔符 -->
+        <hr style="height: 2px; background: linear-gradient(90deg, transparent, #6366f1, transparent); margin: 30px 0; border: none;">
+        
+        <!-- 参考文献 - 动态生成 -->
+        ${this.generateReferences(data.content)}
+        
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            <br>
+        </p>
+        <hr style="border-style: solid; border-width: 1px 0 0; border-color: rgba(0,0,0,0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5);">
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            <br>
+        </p>
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            研究团队 / ${organization}　技术支持 / 深度学习实验室
+        </p>
+        <p style="color: #666; font-size: 11px; font-style: italic; text-align: center; margin: 0;">
+            本报告首发于${testDate}
+        </p>
     </div>
-</body>
-</html>`;
+</div>
+    `;
   },
 
-  // 渲染方法
-  render: function(title, content, metadata = {}) {
-    return this.template(title, content, metadata);
+  generateTableOfContents: function(content) {
+    if (!content) return '';
+    
+    const headings = content.match(/^#{1,3}\s+(.+)$/gm);
+    if (!headings || headings.length === 0) return '';
+    
+    // 过滤掉第一个标题（主题标题）
+    const filteredHeadings = headings.slice(1);
+    if (filteredHeadings.length === 0) return '';
+    
+    let tocHtml = `
+      <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6366f1; padding: 25px; margin: 30px 0; border-radius: 0 12px 12px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <h3 style="color: #6366f1; font-size: 18px; margin: 0 0 15px 0; font-weight: 600;">目录</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+    `;
+    
+    filteredHeadings.forEach((heading, index) => {
+      const level = heading.match(/^#+/)[0].length;
+      const text = heading.replace(/^#+\s+/, '');
+      const id = `heading-${index}`;
+      
+      tocHtml += `
+          <li style="margin: 10px 0; padding-left: 20px; position: relative;">
+            <span style="position: absolute; left: 0; color: #6366f1; font-size: 12px;">▶</span>
+            <span style="color: #555; font-weight: 500; font-size: 16px; font-style: italic;">${text}</span>
+          </li>
+      `;
+    });
+    
+    tocHtml += `
+        </ul>
+      </div>
+    `;
+    
+    return tocHtml;
   },
 
-  // 处理特殊内容块
   processSpecialBlocks: function(content) {
-    return content
-      // 性能指标网格
-      .replace(/:::metrics\s*([\s\S]*?)\s*:::/g, (match, metricsContent) => {
-        const metrics = metricsContent.trim().split('\n').filter(line => line.trim());
-        const metricsHtml = metrics.map(metric => {
-          const [icon, value, label, change] = metric.split(' - ');
-          const changeClass = change && change.startsWith('+') ? 'positive' : change && change.startsWith('-') ? 'negative' : '';
-          return `<div class="metric-card">
-            <span class="metric-icon">${icon}</span>
-            <div class="metric-value">${value}</div>
-            <div class="metric-label">${label}</div>
-            ${change ? `<div class="metric-change ${changeClass}">${change}</div>` : ''}
-          </div>`;
-        }).join('');
-        return `<div class="metrics-grid">${metricsHtml}</div>`;
-      })
-      // 对比表格
-      .replace(/:::comparison\s*([\s\S]*?)\s*:::/g, (match, tableContent) => {
-        const lines = tableContent.trim().split('\n').filter(line => line.trim());
-        const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
-        const rows = lines.slice(1).map(line => {
-          const cells = line.split('|').map(c => c.trim()).filter(c => c);
-          return cells;
-        });
+    if (!content) return '';
+    
+    // 移除参考文献部分，因为它会单独处理
+    content = content.replace(/^#{1,6}\s*参考文献[\s\S]*$/im, '');
+    
+    // 跳过第一个顶级标题或第一个二级标题，因为它已经作为页面主标题显示
+    let firstTitleSkipped = false;
+    
+    // 先处理一级标题
+    content = content.replace(/^# (.+)$/gm, (match, title) => {
+      if (!firstTitleSkipped) {
+        firstTitleSkipped = true;
+        return ''; // 移除第一个顶级标题，避免重复
+      }
+      return match; // 保留其他顶级标题
+    });
+    
+    // 处理二级标题，根据内容调整编号逻辑
+    const sectionCounter = { count: 0 };
+    content = content.replace(/^## (.+)$/gm, (match, title) => {
+      // 如果是第一个二级标题且还没有跳过标题，跳过它（通常是主标题的重复）
+      if (!firstTitleSkipped) {
+        firstTitleSkipped = true;
+        return ''; // 移除第一个二级标题，避免重复
+      }
+      
+      // 特殊处理：如果是"前言"，不添加编号
+      if (title.includes('前言')) {
+        return `<section id="preface" style="margin: 30px 0;">
+          <h2 style="color: #2c3e50; font-size: 22px; font-weight: 600; margin: 35px 0 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6366f1; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); text-align: center;">
+            ${title}
+          </h2>
+        </section>`;
+      } else {
+        sectionCounter.count++;
+        return `<section id="section-${sectionCounter.count}" style="margin: 30px 0;">
+          <h2 style="color: #2c3e50; font-size: 22px; font-weight: 600; margin: 35px 0 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6366f1; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); text-align: center;">
+            <span style="font-style: italic; font-weight: bold; color: #6366f1; margin-right: 10px; font-size: 24px;">${sectionCounter.count}:</span>${title}
+          </h2>
+        </section>`;
+      }
+    });
+    
+    // 处理三级标题
+    content = content.replace(/^### (.+)$/gm, '<h3 style="color: #34495e; font-size: 18px; font-weight: 600; margin: 25px 0 15px 0; padding-left: 15px; border-left: 3px solid #6366f1;">$1</h3>');
+    
+    // 处理四级标题  
+    content = content.replace(/^#### (.+)$/gm, '<h4 style="color: #555; font-size: 16px; font-weight: 600; margin: 20px 0 12px 0;">$1</h4>');
+    
+    // 处理段落
+    content = this.processMarkdownParagraphs(content);
+    
+    // 处理强调文本
+    content = content.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #6366f1; font-weight: 600;">$1</strong>');
+    content = content.replace(/\*(.+?)\*/g, '<em style="color: #6366f1; font-style: normal; font-weight: 500;">$1</em>');
+    
+    // 处理链接 - 只显示链接文本，不添加超链接
+    content = content.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // 处理有序列表
+    content = content.replace(/^\d+\.\s+(.+)$/gm, '<div style="margin: 12px 0; line-height: 1.8; color: #333; padding-left: 8px;"><strong style="color: #6366f1; margin-right: 8px;">•</strong>$1</div>');
+    
+    // 处理无序列表（但排除参考文献中的列表）
+    content = content.replace(/^[-*+]\s+(.+)$/gm, '<div style="margin: 12px 0; line-height: 1.8; color: #333; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0; color: #6366f1;">•</span>$1</div>');
+    
+    // 处理引用块
+    content = content.replace(/^>\s+(.+)$/gm, '<blockquote style="margin: 30px 0; padding: 24px 28px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(255, 255, 255, 0.8)); border-left: 5px solid #6366f1; border-radius: 0 12px 12px 0; font-style: italic; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);"><p style="margin: 0; font-weight: 500; color: #4f46e5;">$1</p></blockquote>');
+    
+    // 处理代码块
+    content = content.replace(/`([^`]+)`/g, '<code style="background: #f8f9fa; color: #6366f1; padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 0.9em; border: 1px solid #e9ecef; font-weight: 500;">$1</code>');
+    
+    // 处理图片占位符（符合微信公众号要求）
+    content = content.replace(/!\[([^\]]*)\]\([^)]*\)/g, '<div style="display: block; margin: 20px auto; padding: 20px; border: 2px dashed #d1d1d1; text-align: center; color: #888; background-color: #fafafa; border-radius: 8px;">[ 请在此处手动上传图片：$1 ]</div>');
+    
+    // 处理分隔符
+    content = content.replace(/^---+$/gm, '<hr style="height: 2px; background: linear-gradient(90deg, transparent, #6366f1, transparent); margin: 30px 0; border: none;">');
+    
+    // 扩展术语高亮范围，包括AI基准测试相关术语
+    const highlightTerms = [
+      '人工智能', 'AI', '机器学习', '深度学习', '神经网络', '大模型', 'LLMs',
+      '基准测试', '性能评测', '准确率', '召回率', 'F1分数', 'BLEU', 'ROUGE',
+      '模型对比', '算法优化', '推理速度', '内存消耗', '计算效率', 'GPU加速',
+      'Transformer', 'BERT', 'GPT', 'ChatGPT', 'Claude', 'LLaMA'
+    ];
+    
+    highlightTerms.forEach(term => {
+      const regex = new RegExp(`(?<!<[^>]*?)\\b${term}\\b(?![^<]*?>)`, 'g');
+      content = content.replace(regex, `<strong style="color: #6366f1; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), transparent); padding: 1px 3px; border-radius: 3px;">${term}</strong>`);
+    });
+    
+    return content;
+  },
+
+  processMarkdownParagraphs: function(content) {
+    if (!content) return '';
+    
+    // 按行分割内容
+    const lines = content.split('\n');
+    const processedLines = [];
+    let currentParagraph = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // 如果是空行或者已经是HTML标签，结束当前段落
+      if (line === '' || 
+          line.startsWith('<') || 
+          line.match(/^#{1,6}\s/) || 
+          line.startsWith(':::') ||
+          line.match(/^\s*[-*+]\s/) || // 列表项
+          line.match(/^\s*\d+\.\s/) || // 有序列表
+          line.startsWith('```') || // 代码块
+          line.startsWith('|') || // 表格
+          line.startsWith('>')) { // 引用
         
-        const headerHtml = headers.map(header => `<th>${header}</th>`).join('');
-        const rowsHtml = rows.map(row => {
-          const cellsHtml = row.map((cell, index) => {
-            const isScore = index > 0 && !isNaN(parseFloat(cell));
-            const className = isScore ? 'score' : index === 0 ? 'model-name' : '';
-            return `<td class="${className}">${cell}</td>`;
-          }).join('');
-          return `<tr>${cellsHtml}</tr>`;
-        }).join('');
+        // 如果有累积的段落内容，包装成<p>标签并加上样式
+        if (currentParagraph.length > 0) {
+          const paragraphContent = currentParagraph.join(' ').trim();
+          if (paragraphContent) {
+            processedLines.push(`<p style="margin: 15px 0; text-align: justify; font-size: 16px; line-height: 1.8; color: #333;">${paragraphContent}</p>`);
+          }
+          currentParagraph = [];
+        }
         
-        return `<table class="comparison-table">
-          <thead><tr>${headerHtml}</tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>`;
-      })
-      // 图表占位符
-      .replace(/:::chart\s*([\s\S]*?)\s*:::/g, (match, chartContent) => {
-        const title = chartContent.trim() || '性能对比图表';
-        return `<div class="chart-container">
-          <div class="chart-title">
-            <span>📈</span>
-            <span>${title}</span>
-          </div>
-          <div class="chart-placeholder">
-            📊 图表数据可视化区域<br>
-            <small>（实际使用时可嵌入 Chart.js、ECharts 等图表库）</small>
-          </div>
-        </div>`;
+        // 添加当前行（如果不是空行）
+        if (line !== '') {
+          processedLines.push(lines[i]); // 保持原始格式
+        } else {
+          processedLines.push(''); // 保持空行
+        }
+      } else {
+        // 累积普通文本行到当前段落
+        currentParagraph.push(line);
+      }
+    }
+    
+    // 处理最后的段落
+    if (currentParagraph.length > 0) {
+      const paragraphContent = currentParagraph.join(' ').trim();
+      if (paragraphContent) {
+        processedLines.push(`<p style="margin: 15px 0; text-align: justify; font-size: 16px; line-height: 1.8; color: #333;">${paragraphContent}</p>`);
+      }
+    }
+    
+    return processedLines.join('\n');
+  },
+
+  extractFirstTitle: function(content) {
+    if (!content) return null;
+    
+    // 匹配第一个标题（# 开头的行）
+    const titleMatch = content.match(/^#{1,6}\s+(.+)$/m);
+    if (titleMatch) {
+      return titleMatch[1].trim();
+    }
+    
+    return null;
+  },
+
+  generateReferences: function(content) {
+    if (!content) return '';
+    
+    // 查找参考文献部分
+    const referencesMatch = content.match(/#{1,6}\s*参考文献[\s\S]*$/i);
+    if (!referencesMatch) {
+      return ''; // 如果没有找到参考文献部分，返回空字符串
+    }
+    
+    const referencesSection = referencesMatch[0];
+    
+    // 提取所有的引用条目（markdown列表格式）
+    const referenceItems = referencesSection.match(/^\*\s+(.+)$/gm);
+    
+    if (!referenceItems || referenceItems.length === 0) {
+      return ''; // 如果没有找到引用条目，返回空字符串
+    }
+    
+    // 构建参考文献HTML
+    let referencesHtml = `
+      <div style="margin: 40px 0 0 0; padding: 0; background: none; border: none;">
+        <h2 style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6366f1; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); padding: 15px 20px; margin: 0 0 20px 0; color: #2c3e50; font-size: 22px; font-weight: 600;">
+          参考文献
+        </h2>
+        
+        <p>
+          <span style="font-size: 14px; font-style: italic;">※研究数据来源，仅供参考。</span>
+        </p>
+        
+        <ul style="list-style: none; padding: 0; margin: 0;">
+    `;
+    
+    // 处理每个引用条目
+    referenceItems.forEach((item, index) => {
+      // 移除markdown列表符号
+      let cleanItem = item.replace(/^\*\s+/, '').trim();
+      
+      // 处理markdown链接格式 [URL](URL) - 移除超链接，只显示URL文本
+      cleanItem = cleanItem.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+        // 只显示URL，不添加超链接
+        return url;
       });
+      
+      // 添加列表项
+      const isLastItem = index === referenceItems.length - 1;
+      const borderStyle = isLastItem ? '' : 'border-bottom: 1px solid rgb(233, 236, 239);';
+      
+      referencesHtml += `
+        <li style="margin: 0px; padding: 8px 0px; ${borderStyle} font-size: 12px; line-height: 1.5; color: rgb(119, 119, 119);">
+          <section>
+            <span>${cleanItem}</span>
+          </section>
+        </li>
+      `;
+    });
+    
+    referencesHtml += `
+        </ul>
+        
+        <!-- 间隔行 -->
+        <div style="height: 20px;"></div>
+      </div>
+    `;
+    
+    return referencesHtml;
+  },
+
+  render: function(data) {
+    // 确保数据完整性，专门为AI基准测试优化
+    const renderData = {
+      title: data.title || 'AI基准测试报告：性能评估与技术对比分析',
+      content: data.content || '',
+      organization: data.organization || 'AI Research Lab',
+      testDate: data.testDate || new Date().toLocaleDateString('zh-CN'),
+      version: data.version || 'v1.0',
+      benchmarkType: data.benchmarkType || 'performance',
+      dataset: data.dataset || 'Standard Benchmark',
+      models: data.models || [],
+      environment: data.environment || {},
+      subtitle: data.subtitle || '深度学习模型性能基准测试报告'
+    };
+    
+    return this.template(renderData);
   }
 };

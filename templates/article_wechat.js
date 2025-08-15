@@ -1,524 +1,365 @@
 /**
- * 微信公众号专用 - 文章模板 (基于 render_demo 设计理念重构)
- * 融合了现代设计、技术风格和专业版的优秀元素
- * 专门针对微信公众号阅读体验优化
+ * 微信公众号专用 - 医疗文章模板
+ * 基于ai-medical-article-v5.html设计风格重构
+ * 专门针对微信公众号医疗内容阅读体验优化
+ * 遵循微信公众号CSS约束条件，使用行内样式
  */
 export default {
   name: 'article_wechat',
-  displayName: '微信文章',
-  description: '专为微信公众号设计的现代文章模板，融合多种风格元素',
+  displayName: '微信医疗文章模板',
+  description: '专为微信公众号设计的医疗文章模板，完全兼容微信编辑器约束',
   
-  styles: `
-    /* CSS 变量定义 - 基于 render_demo 的设计系统 */
-    :root {
-      --primary-color: #3b82f6;
-      --primary-dark: #2563eb;
-      --secondary-color: #0ea5e9;
-      --accent-color: #10b981;
-      --text-color: #1e293b;
-      --text-light: #64748b;
-      --text-muted: #94a3b8;
-      --bg-color: #ffffff;
-      --bg-light: #f8fafc;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-      --border-light: #f1f5f9;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      --max-content-width: 750px; /* 微信推荐的最大内容宽度 */
-      --font-size-base: 17px; /* 微信推荐的基础字体大小 */
-      --line-height-base: 1.75; /* 微信推荐的行高 */
-    }
+  // 微信公众号不支持外部CSS和<style>标签，所有样式都通过行内样式实现
+  styles: '',
 
-    /* 全局样式 - 微信公众号优化 */
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      line-height: var(--line-height-base);
-      margin: 0;
-      padding: 20px;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-size: var(--font-size-base);
-      letter-spacing: 0.5px;
-      word-break: break-word;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* 主容器 */
-    .main-container {
-      max-width: var(--max-content-width);
-      margin: 0 auto;
-      background: var(--bg-card);
-      border-radius: 12px;
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-    }
-
-    /* 头部区域 - 融合现代和专业风格 */
-    .article-header {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-      color: white;
-      padding: 30px 25px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .article-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
-      opacity: 0.3;
-    }
-
-    .article-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin: 0 0 15px 0;
-      line-height: 1.3;
-      position: relative;
-      z-index: 1;
-    }
-
-    .article-meta {
-      font-size: 14px;
-      opacity: 0.9;
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    /* 目录区域 - 基于 render_demo 的设计 */
-    .table-of-contents {
-      background: var(--bg-light);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin: 25px 0;
-      padding: 20px;
-    }
-
-    .toc-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 0 0 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid var(--primary-color);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toc-title::before {
-      content: '📋';
-      font-size: 16px;
-    }
-
-    .toc-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .toc-item {
-      margin: 8px 0;
-      padding: 8px 12px;
-      border-radius: 6px;
-      transition: all 0.2s ease;
-      border-left: 3px solid transparent;
-    }
-
-    .toc-item:hover {
-      background: var(--border-light);
-      border-left-color: var(--primary-color);
-    }
-
-    .toc-item a {
-      color: var(--text-color);
-      text-decoration: none;
-      font-size: 15px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toc-item-number {
-      background: var(--primary-color);
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-
-    /* 内容区域 */
-    .article-content {
-      padding: 30px 25px;
-    }
-
-    /* 标题样式 - 层次化设计 */
-    h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--primary-dark);
-      margin: 30px 0 20px 0;
-      line-height: 1.3;
-      position: relative;
-      padding-left: 20px;
-    }
-
-    h1::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
-      border-radius: 2px;
-    }
-
-    h2 {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 35px 0 18px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid var(--border-color);
-      position: relative;
-    }
-
-    h2::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 60px;
-      height: 2px;
-      background: var(--primary-color);
-    }
-
-    h3 {
-      font-size: 19px;
-      font-weight: 600;
-      color: var(--text-color);
-      margin: 25px 0 15px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    h3::before {
-      content: '▶';
-      color: var(--primary-color);
-      font-size: 14px;
-    }
-
-    /* 段落样式 */
-    p {
-      margin: 18px 0;
-      line-height: var(--line-height-base);
-      font-size: var(--font-size-base);
-      color: var(--text-color);
-      text-align: justify;
-      text-indent: 2em;
-    }
-
-    /* 强调文本 */
-    strong {
-      color: var(--primary-dark);
-      font-weight: 600;
-    }
-
-    em {
-      color: var(--secondary-color);
-      font-style: normal;
-      background: linear-gradient(120deg, transparent 0%, var(--border-light) 0%, var(--border-light) 100%, transparent 100%);
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-
-    /* 引用样式 - 多种风格 */
-    blockquote {
-      margin: 25px 0;
-      padding: 20px 25px;
-      background: var(--bg-light);
-      border-left: 4px solid var(--primary-color);
-      border-radius: 0 8px 8px 0;
-      position: relative;
-      font-style: italic;
-    }
-
-    blockquote::before {
-      content: '💡';
-      position: absolute;
-      left: -10px;
-      top: 15px;
-      background: var(--primary-color);
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-
-    /* 代码样式 */
-    code {
-      background: var(--bg-light);
-      color: var(--primary-dark);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-      font-size: 0.9em;
-      border: 1px solid var(--border-color);
-    }
-
-    pre {
-      background: var(--bg-light);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-      overflow-x: auto;
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    pre code {
-      background: none;
-      border: none;
-      padding: 0;
-      color: var(--text-color);
-    }
-
-    /* 列表样式 */
-    ul, ol {
-      margin: 20px 0;
-      padding-left: 30px;
-    }
-
-    li {
-      margin: 8px 0;
-      line-height: var(--line-height-base);
-    }
-
-    ul li::marker {
-      color: var(--primary-color);
-    }
-
-    /* 链接样式 */
-    a {
-      color: var(--primary-color);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-      transition: all 0.2s ease;
-    }
-
-    a:hover {
-      color: var(--primary-dark);
-      border-bottom-color: var(--primary-color);
-    }
-
-    /* 图片样式 */
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin: 20px 0;
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* 特殊内容块 */
-    .note-block {
-      background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-      border-left: 4px solid var(--secondary-color);
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .tip-block {
-      background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-      border-left: 4px solid var(--accent-color);
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .warning-block {
-      background: linear-gradient(135deg, #fef3c7 0%, #fefce8 100%);
-      border-left: 4px solid #f59e0b;
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .danger-block {
-      background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
-      border-left: 4px solid #ef4444;
-      padding: 20px;
-      margin: 25px 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    /* 分隔符 */
-    hr {
-      border: none;
-      height: 2px;
-      background: linear-gradient(to right, transparent, var(--border-color), transparent);
-      margin: 40px 0;
-    }
-
-    /* 标签样式 */
-    .tag {
-      display: inline-block;
-      background: var(--primary-color);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      margin: 2px 4px;
-    }
-
-    /* 页脚 */
-    .article-footer {
-      background: var(--bg-light);
-      padding: 25px;
-      text-align: center;
-      border-top: 1px solid var(--border-color);
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-
-    /* 响应式设计 - 微信移动端优化 */
-    @media (max-width: 768px) {
-      body {
-        padding: 10px;
-      }
-      
-      .main-container {
-        border-radius: 0;
-        box-shadow: none;
-      }
-      
-      .article-header {
-        padding: 25px 20px;
-      }
-      
-      .article-title {
-        font-size: 24px;
-      }
-      
-      .article-content {
-        padding: 25px 20px;
-      }
-      
-      h1 {
-        font-size: 22px;
-      }
-      
-      h2 {
-        font-size: 20px;
-      }
-      
-      h3 {
-        font-size: 18px;
-      }
-    }
-  `,
-
-  template: function(title, content, metadata = {}) {
-    // 处理文章元数据
-    const currentDate = new Date().toLocaleDateString('zh-CN');
-    const tags = metadata.tags || [];
-    const author = metadata.author || '作者';
-    const readTime = metadata.readTime || '5分钟';
-    
-    // 生成目录
-    const tocHtml = this.generateTableOfContents(content);
-    
-    // 处理特殊内容块
-    const processedContent = this.processSpecialBlocks(content);
+  template: function(data) {
+    // 从内容中提取第一个标题作为主标题
+    const extractedTitle = this.extractFirstTitle(data.content) || data.title || '震撼！人工智能在医疗领域的应用前景：18个领域引爆医疗变革！';
     
     return `
-      <div class="main-container">
-        <header class="article-header">
-          <h1 class="article-title">${title}</h1>
-          <div class="article-meta">
-            <span class="meta-item">📅 ${currentDate}</span>
-            <span class="meta-item">👤 ${author}</span>
-            <span class="meta-item">⏱️ ${readTime}</span>
-          </div>
-        </header>
+<!-- 微信公众号专用医疗文章模板 - 完全兼容微信编辑器 -->
+<div style="max-width: 750px; margin: 0 auto; background: #fff; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); border-radius: 8px; overflow: hidden;">
+    
+    <!-- 文章头部 -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
+        <h1 style="font-size: 18px; font-weight: 700; text-shadow: rgba(0, 0, 0, 0.3) 0px 2px 4px; line-height: 1.4; margin: 0px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center;">
+            <span>${extractedTitle}</span>
+        </h1>
+    </div>
+    
+    <!-- 文章内容区 -->
+    <div style="padding: 40px 30px;">
         
-        ${tocHtml}
+        <!-- 文章信息 -->
+        <div style="text-align: center; margin: 20px 0 30px 0;">
+            <p style="color: #666; font-size: 12px; margin: 0 0 8px 0; font-weight: 500; text-align: center;">
+                全文 / 5000 字　阅读 / 大约 10 分钟
+            </p>
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                作者：ameureka
+            </p>
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                <br>
+            </p>
+            <hr style="border-style: solid; border-width: 1px 0 0; border-color: rgba(0,0,0,0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5);">
+            <p style="color: #999; font-size: 11px; font-style: italic; margin: 0; text-align: center;">
+                <br>
+            </p>
+        </div>
         
-        <main class="article-content">
-          ${processedContent}
-        </main>
+        <!-- 目录 -->
+        ${this.generateTableOfContents(data.content)}
         
-        <footer class="article-footer">
-          <p>感谢阅读 | 欢迎分享</p>
-          ${tags.length > 0 ? `<div class="tags">${tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
-        </footer>
-      </div>
+        <!-- 分隔符 -->
+        <hr style="height: 2px; background: linear-gradient(90deg, transparent, #667eea, transparent); margin: 30px 0; border: none;">
+        
+        <!-- 文章正文 -->
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.8; color: #333;">
+            ${this.processSpecialBlocks(data.content)}
+        </div>
+        
+        <!-- 分隔符 -->
+        <hr style="height: 2px; background: linear-gradient(90deg, transparent, #667eea, transparent); margin: 30px 0; border: none;">
+        
+        <!-- 参考文献 - 动态生成 -->
+        ${this.generateReferences(data.content)}
+        
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            <br>
+        </p>
+        <hr style="border-style: solid; border-width: 1px 0 0; border-color: rgba(0,0,0,0.1); -webkit-transform-origin: 0 0; -webkit-transform: scale(1, 0.5); transform-origin: 0 0; transform: scale(1, 0.5);">
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            <br>
+        </p>
+        <p style="color: #333; font-size: 12px; margin: 0 0 8px 0; font-weight: 600; text-align: center;">
+            主笔 / 景九　版面 / 黄静
+        </p>
+        <p style="color: #666; font-size: 11px; font-style: italic; text-align: center; margin: 0;">
+            本文首发于2025年1月
+        </p>
+    </div>
+</div>
     `;
   },
 
   generateTableOfContents: function(content) {
-    const headings = content.match(/<h[2-3][^>]*>.*?<\/h[2-3]>/gi) || [];
-    if (headings.length === 0) return '';
+    if (!content) return '';
     
-    const tocItems = headings.map((heading, index) => {
-      const level = heading.match(/<h([2-3])/)[1];
-      const text = heading.replace(/<[^>]*>/g, '');
-      const id = `heading-${index}`;
-      return `<li class="toc-item toc-level-${level}"><a href="#${id}"><span class="toc-item-number">${index + 1}</span>${text}</a></li>`;
-    }).join('');
+    const headings = content.match(/^#{1,3}\s+(.+)$/gm);
+    if (!headings || headings.length === 0) return '';
     
-    return `
-      <nav class="table-of-contents">
-        <h2 class="toc-title">目录</h2>
-        <ul class="toc-list">${tocItems}</ul>
-      </nav>
+    // 过滤掉第一个标题（主题标题）
+    const filteredHeadings = headings.slice(1);
+    if (filteredHeadings.length === 0) return '';
+    
+    let tocHtml = `
+      <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #667eea; padding: 25px; margin: 30px 0; border-radius: 0 12px 12px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+        <h3 style="color: #667eea; font-size: 18px; margin: 0 0 15px 0; font-weight: 600;">目录</h3>
+        <ul style="list-style: none; padding: 0; margin: 0;">
     `;
+    
+    filteredHeadings.forEach((heading, index) => {
+      const level = heading.match(/^#+/)[0].length;
+      const text = heading.replace(/^#+\s+/, '');
+      const id = `heading-${index}`;
+      
+      tocHtml += `
+          <li style="margin: 10px 0; padding-left: 20px; position: relative;">
+            <span style="position: absolute; left: 0; color: #667eea; font-size: 12px;">▶</span>
+            <span style="color: #555; font-weight: 500; font-size: 16px; font-style: italic;">${text}</span>
+          </li>
+      `;
+    });
+    
+    tocHtml += `
+        </ul>
+      </div>
+    `;
+    
+    return tocHtml;
   },
 
   processSpecialBlocks: function(content) {
-    return content
-      .replace(/:::note([\s\S]*?):::/g, '<div class="note-block">$1</div>')
-      .replace(/:::tip([\s\S]*?):::/g, '<div class="tip-block">$1</div>')
-      .replace(/:::warning([\s\S]*?):::/g, '<div class="warning-block">$1</div>')
-      .replace(/:::danger([\s\S]*?):::/g, '<div class="danger-block">$1</div>');
+    if (!content) return '';
+    
+    // 移除参考文献部分，因为它会单独处理
+    content = content.replace(/^#{1,6}\s*参考文献[\s\S]*$/im, '');
+    
+    // 跳过第一个顶级标题或第一个二级标题，因为它已经作为页面主标题显示
+    let firstTitleSkipped = false;
+    
+    // 先处理一级标题
+    content = content.replace(/^# (.+)$/gm, (match, title) => {
+      if (!firstTitleSkipped) {
+        firstTitleSkipped = true;
+        return ''; // 移除第一个顶级标题，避免重复
+      }
+      return match; // 保留其他顶级标题
+    });
+    
+    // 处理二级标题，根据内容调整编号逻辑
+    const sectionCounter = { count: 0 };
+    content = content.replace(/^## (.+)$/gm, (match, title) => {
+      // 如果是第一个二级标题且还没有跳过标题，跳过它（通常是主标题的重复）
+      if (!firstTitleSkipped) {
+        firstTitleSkipped = true;
+        return ''; // 移除第一个二级标题，避免重复
+      }
+      
+      // 特殊处理：如果是"前言"，不添加编号
+      if (title.includes('前言')) {
+        return `<section id="preface" style="margin: 30px 0;">
+          <h2 style="color: #2c3e50; font-size: 22px; font-weight: 600; margin: 35px 0 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #667eea; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); text-align: center;">
+            ${title}
+          </h2>
+        </section>`;
+      } else {
+        sectionCounter.count++;
+        return `<section id="section-${sectionCounter.count}" style="margin: 30px 0;">
+          <h2 style="color: #2c3e50; font-size: 22px; font-weight: 600; margin: 35px 0 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #667eea; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); text-align: center;">
+            <span style="font-style: italic; font-weight: bold; color: #667eea; margin-right: 10px; font-size: 24px;">${sectionCounter.count}:</span>${title}
+          </h2>
+        </section>`;
+      }
+    });
+    
+    // 处理三级标题
+    content = content.replace(/^### (.+)$/gm, '<h3 style="color: #34495e; font-size: 18px; font-weight: 600; margin: 25px 0 15px 0; padding-left: 15px; border-left: 3px solid #667eea;">$1</h3>');
+    
+    // 处理四级标题  
+    content = content.replace(/^#### (.+)$/gm, '<h4 style="color: #555; font-size: 16px; font-weight: 600; margin: 20px 0 12px 0;">$1</h4>');
+    
+    // 处理段落
+    content = this.processMarkdownParagraphs(content);
+    
+    // 处理强调文本
+    content = content.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #667eea; font-weight: 600;">$1</strong>');
+    content = content.replace(/\*(.+?)\*/g, '<em style="color: #667eea; font-style: normal; font-weight: 500;">$1</em>');
+    
+    // 处理链接 - 只显示链接文本，不添加超链接
+    content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+    
+    // 处理有序列表
+    content = content.replace(/^\d+\.\s+(.+)$/gm, '<div style="margin: 12px 0; line-height: 1.8; color: #333; padding-left: 8px;"><strong style="color: #667eea; margin-right: 8px;">•</strong>$1</div>');
+    
+    // 处理无序列表（但排除参考文献中的列表）
+    content = content.replace(/^[-*+]\s+(.+)$/gm, '<div style="margin: 12px 0; line-height: 1.8; color: #333; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0; color: #667eea;">•</span>$1</div>');
+    
+    // 处理引用块
+    content = content.replace(/^>\s+(.+)$/gm, '<blockquote style="margin: 30px 0; padding: 24px 28px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(255, 255, 255, 0.8)); border-left: 5px solid #667eea; border-radius: 0 12px 12px 0; font-style: italic; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);"><p style="margin: 0; font-weight: 500; color: #764ba2;">$1</p></blockquote>');
+    
+    // 处理代码块
+    content = content.replace(/`([^`]+)`/g, '<code style="background: #f8f9fa; color: #667eea; padding: 3px 8px; border-radius: 6px; font-family: monospace; font-size: 0.9em; border: 1px solid #e9ecef; font-weight: 500;">$1</code>');
+    
+    // 处理图片占位符（符合微信公众号要求）
+    content = content.replace(/!\[([^\]]*)\]\([^)]*\)/g, '<div style="display: block; margin: 20px auto; padding: 20px; border: 2px dashed #d1d1d1; text-align: center; color: #888; background-color: #fafafa; border-radius: 8px;">[ 请在此处手动上传图片：$1 ]</div>');
+    
+    // 处理分隔符
+    content = content.replace(/^---+$/gm, '<hr style="height: 2px; background: linear-gradient(90deg, transparent, #667eea, transparent); margin: 30px 0; border: none;">');
+    
+    // 扩展术语高亮范围，包括大模型相关术语
+    const highlightTerms = [
+      '人工智能', 'AI', '机器学习', '深度学习', '神经网络', '大模型', 'LLMs',
+      '医疗诊断', '影像诊断', '病理诊断', '精准医疗', '个性化治疗',
+      '药物研发', '临床试验', '生物标志物', '基因测序', 'DNA',
+      '微创手术', '机器人手术', '远程医疗', '数字化医疗',
+      '智能客服', '内容创作', '大语言模型', 'AI Agent', '金融科技'
+    ];
+    
+    highlightTerms.forEach(term => {
+      const regex = new RegExp(`(?<!<[^>]*?)\\b${term}\\b(?![^<]*?>)`, 'g');
+      content = content.replace(regex, `<strong style="color: #667eea; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), transparent); padding: 1px 3px; border-radius: 3px;">${term}</strong>`);
+    });
+    
+    return content;
   },
 
-  render: function(title, content, metadata = {}) {
-    return this.template(title, content, metadata);
+  processMarkdownParagraphs: function(content) {
+    if (!content) return '';
+    
+    // 按行分割内容
+    const lines = content.split('\n');
+    const processedLines = [];
+    let currentParagraph = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // 如果是空行或者已经是HTML标签，结束当前段落
+      if (line === '' || 
+          line.startsWith('<') || 
+          line.match(/^#{1,6}\s/) || 
+          line.startsWith(':::') ||
+          line.match(/^\s*[-*+]\s/) || // 列表项
+          line.match(/^\s*\d+\.\s/) || // 有序列表
+          line.startsWith('```') || // 代码块
+          line.startsWith('|') || // 表格
+          line.startsWith('>')) { // 引用
+        
+        // 如果有累积的段落内容，包装成<p>标签并加上样式
+        if (currentParagraph.length > 0) {
+          const paragraphContent = currentParagraph.join(' ').trim();
+          if (paragraphContent) {
+            processedLines.push(`<p style="margin: 15px 0; text-align: justify; font-size: 16px; line-height: 1.8; color: #333;">${paragraphContent}</p>`);
+          }
+          currentParagraph = [];
+        }
+        
+        // 添加当前行（如果不是空行）
+        if (line !== '') {
+          processedLines.push(lines[i]); // 保持原始格式
+        } else {
+          processedLines.push(''); // 保持空行
+        }
+      } else {
+        // 累积普通文本行到当前段落
+        currentParagraph.push(line);
+      }
+    }
+    
+    // 处理最后的段落
+    if (currentParagraph.length > 0) {
+      const paragraphContent = currentParagraph.join(' ').trim();
+      if (paragraphContent) {
+        processedLines.push(`<p style="margin: 15px 0; text-align: justify; font-size: 16px; line-height: 1.8; color: #333;">${paragraphContent}</p>`);
+      }
+    }
+    
+    return processedLines.join('\n');
+  },
+
+  extractFirstTitle: function(content) {
+    if (!content) return null;
+    
+    // 匹配第一个标题（# 开头的行）
+    const titleMatch = content.match(/^#{1,6}\s+(.+)$/m);
+    if (titleMatch) {
+      return titleMatch[1].trim();
+    }
+    
+    return null;
+  },
+
+  generateReferences: function(content) {
+    if (!content) return '';
+    
+    // 查找参考文献部分
+    const referencesMatch = content.match(/#{1,6}\s*参考文献[\s\S]*$/i);
+    if (!referencesMatch) {
+      return ''; // 如果没有找到参考文献部分，返回空字符串
+    }
+    
+    const referencesSection = referencesMatch[0];
+    
+    // 提取所有的引用条目（markdown列表格式）
+    const referenceItems = referencesSection.match(/^\*\s+(.+)$/gm);
+    
+    if (!referenceItems || referenceItems.length === 0) {
+      return ''; // 如果没有找到引用条目，返回空字符串
+    }
+    
+    // 构建参考文献HTML
+    let referencesHtml = `
+      <div style="margin: 40px 0 0 0; padding: 0; background: none; border: none;">
+        <h2 style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #667eea; border-radius: 0 8px 8px 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); padding: 15px 20px; margin: 0 0 20px 0; color: #2c3e50; font-size: 22px; font-weight: 600;">
+          参考文献
+        </h2>
+        
+        <p>
+          <span style="font-size: 14px; font-style: italic;">※个人观点，仅供参考。</span>
+        </p>
+        
+        <ul style="list-style: none; padding: 0; margin: 0;">
+    `;
+    
+    // 处理每个引用条目
+    referenceItems.forEach((item, index) => {
+      // 移除markdown列表符号
+      let cleanItem = item.replace(/^\*\s+/, '').trim();
+      
+      // 处理markdown链接格式 [URL](URL) - 移除超链接，只显示URL文本
+      cleanItem = cleanItem.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+        // 只显示URL，不添加超链接
+        return url;
+      });
+      
+      // 添加列表项
+      const isLastItem = index === referenceItems.length - 1;
+      const borderStyle = isLastItem ? '' : 'border-bottom: 1px solid rgb(233, 236, 239);';
+      
+      referencesHtml += `
+        <li style="margin: 0px; padding: 8px 0px; ${borderStyle} font-size: 12px; line-height: 1.5; color: rgb(119, 119, 119);">
+          <section>
+            <span>${cleanItem}</span>
+          </section>
+        </li>
+      `;
+    });
+    
+    referencesHtml += `
+        </ul>
+        
+        <!-- 间隔行 -->
+        <div style="height: 20px;"></div>
+      </div>
+    `;
+    
+    return referencesHtml;
+  },
+
+  render: function(data) {
+    // 确保数据完整性，专门为医疗文章优化
+    const renderData = {
+      title: data.title || '震撼！人工智能在医疗领域的应用前景：18个领域引爆医疗变革！',
+      content: data.content || '',
+      author: data.author || 'ameureka',
+      date: data.date || '2025年1月',
+      readingTime: data.readingTime || '全文 / 5000 字　阅读 / 大约 10 分钟',
+      category: data.category || '医疗科技',
+      description: data.description || '探索人工智能在医疗领域的最新应用与发展前景，包括智能诊断、影像分析、药物研发、精准医疗等前沿技术的深度解析。',
+      tags: data.tags || ['人工智能', '医疗科技', '智能诊断', '精准医疗', '药物研发', '微创手术']
+    };
+    
+    return this.template(renderData);
   }
 };
