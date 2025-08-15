@@ -75,19 +75,29 @@ fi
 
 # 检查 KV 命名空间
 echo "\n🗄️  检查 KV 命名空间..."
-KV_ID=$(grep -A2 "\[\[kv_namespaces\]\]" wrangler.toml | grep "id" | cut -d'"' -f4)
+KV_ID=$(grep -A3 "\[\[kv_namespaces\]\]" wrangler.toml | grep "^[[:space:]]*id[[:space:]]*=" | cut -d'"' -f2)
 if [ -z "$KV_ID" ]; then
     echo "❌ KV 命名空间 ID 未配置"
     echo "正在创建 KV 命名空间..."
     wrangler kv namespace create MARKDOWN_KV
     echo "请手动更新 wrangler.toml 中的 KV 命名空间 ID"
     exit 1
+else
+    # 验证 KV 命名空间是否真实存在
+    if wrangler kv namespace list | grep -q "$KV_ID"; then
+        echo "✅ KV 命名空间已配置且存在: $KV_ID"
+    else
+        echo "❌ KV 命名空间 ID 配置错误，命名空间不存在"
+        echo "正在创建新的 KV 命名空间..."
+        wrangler kv namespace create MARKDOWN_KV
+        echo "请手动更新 wrangler.toml 中的 KV 命名空间 ID"
+        exit 1
+    fi
 fi
-echo "✅ KV 命名空间已配置: $KV_ID"
 
 # 检查 R2 存储桶
 echo "\n📦 检查 R2 存储桶..."
-BUCKET_NAME=$(grep -A2 "\[\[r2_buckets\]\]" wrangler.toml | grep "bucket_name" | cut -d'"' -f4)
+BUCKET_NAME=$(grep -A2 "\[\[r2_buckets\]\]" wrangler.toml | grep "bucket_name" | cut -d'"' -f2)
 if [ -z "$BUCKET_NAME" ]; then
     echo "❌ R2 存储桶未配置"
     exit 1

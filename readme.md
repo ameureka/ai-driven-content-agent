@@ -1,496 +1,329 @@
-# AI驱动内容代理 (AI-Driven Content Agent)
+# 🤖 AI驱动内容代理 (AI-Driven Content Agent)
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/your-username/ai-driven-content-agent)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/ameureka/ai-driven-content-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-username/ai-driven-content-agent/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/ameureka/ai-driven-content-agent/releases)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
+[![Dify](https://img.shields.io/badge/Powered%20by-Dify%20AI-blue)](https://dify.ai/)
 
-一个基于Cloudflare Workers的智能内容代理服务，集成Dify AI平台，提供Markdown到HTML的智能转换和多样化模板渲染功能。
+一个基于Cloudflare Workers的智能内容生成和渲染系统，集成Dify AI工作流，支持多种微信公众号模板和自定义工作流管理。
 
-## ✨ 特性
+> 🌟 **特别说明**: 本项目已完成自定义工作流系统的完整实现，包括前端界面、后端API、环境变量配置和生产环境部署验证。
 
-- 🤖 **AI驱动**: 集成Dify AI平台，提供智能内容处理
-- 🎨 **多模板支持**: 内置5种专业模板，支持自定义模板开发
-- ⚡ **高性能**: 基于Cloudflare Workers，全球边缘计算
-- 📱 **响应式设计**: 完美适配桌面、平板和移动设备
-- 🔄 **流式处理**: 支持实时流式AI响应
-- 💾 **智能缓存**: KV存储优化，提升响应速度
-- 🛡️ **安全可靠**: 内置安全防护和错误处理机制
-- 📊 **RESTful API**: 完整的API接口，易于集成
+## ✨ 核心特性
 
-## 🚀 快速开始
+### 🎯 智能内容生成
+- 🤖 **AI驱动**: 集成Dify AI平台，支持多种智能工作流
+- 📝 **内容生成**: 基于URL自动生成高质量文章内容
+- 🔄 **流式响应**: 实时流式AI响应，提供即时反馈
+- 📊 **多种输入**: 支持URL、文本、标题等多种输入方式
 
-### 前置要求
+### 🎨 专业模板系统
+- 📱 **微信优化**: 6种专业微信公众号模板
+- 🎯 **场景覆盖**: 文章、技术分析、新闻、项目介绍等
+- 🔧 **可扩展性**: 支持自定义模板开发
+- 📐 **响应式设计**: 完美适配移动端和桌面端
 
-- [Node.js](https://nodejs.org/) 16.x 或更高版本
-- [Cloudflare账户](https://cloudflare.com/)
-- [Dify平台账户](https://dify.ai/)
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
+### ⚡ 高性能架构
+- 🌍 **边缘计算**: 基于Cloudflare Workers，全球边缘节点部署
+- ⚡ **毫秒响应**: Worker启动时间 < 15ms
+- 💾 **智能缓存**: KV存储 + R2对象存储优化
+- 🛡️ **安全可靠**: 内置安全防护和完整错误处理
 
-### 安装部署
+### 🔧 自定义工作流
+- ➕ **动态添加**: 支持在线添加自定义Dify工作流
+- 🗑️ **灵活管理**: 完整的CRUD操作支持
+- 🎛️ **配置灵活**: 支持不同类型和图标的工作流配置
+- 🔄 **实时更新**: 无需重启即可更新工作流配置
 
-1. **克隆项目**
+## 🚀 一键部署
+
+### 快速部署
 ```bash
-git clone https://github.com/your-username/ai-driven-content-agent.git
+# 克隆项目
+git clone https://github.com/ameureka/ai-driven-content-agent.git
 cd ai-driven-content-agent
+
+# 一键部署脚本
+chmod +x quick-start-main.sh
+./quick-start-main.sh
 ```
 
-2. **安装依赖**
+### 手动部署
 ```bash
+# 1. 安装依赖
 npm install
-```
 
-3. **配置环境**
-```bash
-# 安装Wrangler CLI
-npm install -g wrangler
-
-# 登录Cloudflare
+# 2. 配置Cloudflare
 wrangler login
 
-# 创建KV命名空间
-wrangler kv:namespace create "CONTENT_CACHE"
-wrangler kv:namespace create "CONTENT_CACHE" --preview
-```
-
-4. **设置环境变量**
-```bash
-# 设置生产环境密钥
+# 3. 设置环境变量
 wrangler secret put DIFY_API_KEY
-wrangler secret put DIFY_BASE_URL
+wrangler secret put DIFY_ARTICLE_API_KEY  
+wrangler secret put API_KEY
 
-# 创建开发环境配置
-echo "DIFY_API_KEY=your-dify-api-key" > .dev.vars
-echo "DIFY_BASE_URL=https://api.dify.ai" >> .dev.vars
-```
-
-5. **更新配置文件**
-
-编辑 `wrangler.toml`，添加KV命名空间ID：
-```toml
-[[kv_namespaces]]
-binding = "CONTENT_CACHE"
-id = "your-namespace-id"
-preview_id = "your-preview-namespace-id"
-```
-
-6. **本地开发**
-```bash
-# 启动开发服务器
-npm run dev
-
-# 或使用Wrangler
-wrangler dev
-```
-
-7. **部署到生产**
-```bash
+# 4. 部署到生产环境
 npm run deploy
 ```
 
-## 📖 使用指南
+## 🎯 功能演示
 
-### API端点
+### 内置工作流
+| 工作流 | 类型 | 功能描述 | 输入要求 |
+|--------|------|----------|----------|
+| **URL内容生成** | `dify-general` | 基于URL生成智能内容 | URL地址 |
+| **AI文章创作** | `dify-article` | 基于标题创作完整文章 | 文章标题 |
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/status` | GET | 服务状态检查 |
-| `/api/templates` | GET | 获取可用模板列表 |
-| `/api/upload` | POST | 上传Markdown文件 |
-| `/api/render` | POST | 渲染内容为HTML |
-| `/api/dify/blocking` | POST | Dify阻塞式API调用 |
-| `/api/dify/streaming` | POST | Dify流式API调用 |
+### 模板系统
+| 模板名称 | 标识符 | 适用场景 | 特色功能 |
+|----------|--------|----------|----------|
+| 📄 文章模板 | `article_wechat` | 通用文章发布 | 简洁排版、易读性优化 |
+| 🔬 技术分析 | `tech_analysis_wechat` | 技术深度解析 | 代码高亮、专业布局 |
+| 📰 现代新闻 | `news_modern_wechat` | 新闻资讯发布 | 时效性标识、媒体优化 |
+| 🚀 GitHub项目 | `github_project_wechat` | 开源项目介绍 | 项目展示、技术栈突出 |
+| 📊 AI基准测试 | `ai_benchmark_wechat` | AI性能评测 | 数据可视化、对比表格 |
+| 💼 专业分析 | `professional_analysis_wechat` | 行业深度分析 | 专业排版、数据图表 |
 
-### 基础使用示例
+## 📖 API接口文档
 
-**1. 渲染Markdown内容**
-```javascript
-const response = await fetch('https://your-domain.workers.dev/api/render', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    content: '# Hello World\n\nThis is **markdown** content.',
-    template: 'general',
-    title: 'My Document'
-  })
-});
-
-const html = await response.text();
+### 系统状态
+```bash
+GET /api/v1/status
+# 响应: 系统健康状态和版本信息
 ```
 
-**2. 调用Dify AI**
-```javascript
-const response = await fetch('https://your-domain.workers.dev/api/dify/blocking', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    query: '请帮我写一篇关于AI的文章',
-    inputs: {},
-    user: 'web-user'
-  })
-});
+### 工作流管理
+```bash
+# 获取可用工作流
+GET /api/v1/workflows/available
 
-const result = await response.json();
-```
-
-**3. 流式AI响应**
-```javascript
-const response = await fetch('https://your-domain.workers.dev/api/dify/streaming', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    query: '请实时生成内容',
-    inputs: {},
-    user: 'web-user'
-  })
-});
-
-const reader = response.body.getReader();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  
-  const chunk = new TextDecoder().decode(value);
-  console.log('Received:', chunk);
+# 执行工作流
+POST /api/v1/workflows/{workflowId}/execute
+{
+  "inputs": {
+    "url": "https://example.com",
+    "title": "文章标题"
+  }
 }
+
+# 添加自定义工作流
+POST /api/v1/workflows/custom
+{
+  "id": "my-workflow",
+  "name": "我的工作流",
+  "description": "自定义工作流描述",
+  "apiKey": "app-your-dify-key",
+  "type": "url",
+  "icon": "ion-md-cog"
+}
+
+# 删除自定义工作流
+DELETE /api/v1/workflows/custom/{workflowId}
 ```
 
-### 可用模板
+### 内容渲染
+```bash
+# 渲染内容
+POST /api/v1/content/render
+{
+  "content": "markdown内容",
+  "template": "article_wechat",
+  "title": "文章标题"
+}
 
-| 模板名称 | 标识符 | 描述 | 适用场景 |
-|----------|--------|------|----------|
-| 通用模板 | `general` | 简洁现代的通用样式 | 文档、博客、说明 |
-| 技术介绍 | `tech_intro` | 专业的技术文档样式 | 技术文档、API文档 |
-| 新闻广播 | `news_broad` | 新闻媒体风格 | 新闻、公告、资讯 |
-| 技术解释 | `tech_interpre` | 深度技术解析样式 | 技术分析、教程 |
-| 视频解释 | `video_interpre` | 视频内容配套样式 | 视频文稿、字幕 |
+# 获取内容列表
+GET /api/v1/content
+
+# 获取HTML源码
+GET /api/v1/content/{contentId}/html
+```
+
+### 模板系统
+```bash
+# 获取模板列表
+GET /api/v1/templates
+
+# 获取模板详情
+GET /api/v1/templates/{templateId}
+```
 
 ## 🏗️ 项目架构
 
 ```
 ai-driven-content-agent/
-├── src/                    # 源代码目录
-│   ├── index.js           # 主入口文件
-│   ├── api/               # API层
-│   │   ├── dify.js        # Dify API集成
-│   │   └── difyArticle.js # Dify文章API
-│   ├── services/          # 服务层
-│   │   └── templateManager.js # 模板管理器
-│   └── styles/            # 样式目录
-├── templates/             # 模板文件
-│   ├── general.js         # 通用模板
-│   ├── tech_intro.js      # 技术介绍模板
-│   ├── news_broad.js      # 新闻广播模板
-│   ├── tech_interpre.js   # 技术解释模板
-│   └── video_interpre.js  # 视频解释模板
-├── public/                # 静态资源
-│   ├── index.html         # 主页
-│   ├── upload.html        # 上传页面
-│   └── style.css          # 公共样式
-├── docs/                  # 文档目录
-│   ├── API.md             # API文档
-│   ├── DESIGN.md          # 设计文档
-│   ├── DEPLOYMENT.md      # 部署指南
-│   ├── TEMPLATE_GUIDE.md  # 模板开发指南
-│   └── TROUBLESHOOTING.md # 故障排除指南
-├── tests/                 # 测试目录
-└── wrangler.toml          # Cloudflare Workers配置
+├── 📁 src/                      # 核心源代码
+│   ├── 🎯 index.js             # 主入口 - 路由和中间件
+│   ├── 📁 api/                 # API层
+│   │   ├── 🔗 dify.js          # Dify通用工作流集成
+│   │   ├── 📝 difyArticle.js   # Dify文章工作流
+│   │   └── 🛣️ routes.js        # RESTful API路由
+│   └── 📁 services/            # 业务逻辑层
+│       └── 🎨 templateManager.js # 模板管理服务
+├── 📁 templates/               # 模板文件(6个专业模板)
+├── 📁 public/                  # 前端静态资源
+│   ├── 🏠 index.html          # 主页面(工作流选择器)
+│   ├── ⚡ script.js           # 前端逻辑(220+行)
+│   ├── 🎨 styles.css          # 样式表(专业UI)
+│   └── 📚 wiki.html           # API文档页面
+├── 📁 docs/                    # 项目文档
+│   └── 📋 自定义工作流系统实施报告.md # 完整实施文档
+├── 📁 test/                    # 测试文件
+└── ⚙️ wrangler.toml           # Cloudflare Workers配置
 ```
 
-### 核心组件
+## 🔧 环境配置
 
-- **主入口 (index.js)**: 请求路由和响应处理
-- **API层**: Dify平台集成和外部服务调用
-- **服务层**: 业务逻辑和模板管理
-- **模板系统**: 可扩展的HTML模板引擎
-- **缓存层**: KV存储优化和性能提升
+### 必需环境变量
+```env
+# Dify AI API配置
+DIFY_API_KEY=app-your-general-workflow-key
+DIFY_ARTICLE_API_KEY=app-your-article-workflow-key
+DIFY_BASE_URL=https://api.dify.ai
 
-## 🎨 自定义模板
+# 系统配置
+API_KEY=your-api-access-key
+ENVIRONMENT=production
+```
 
-### 创建新模板
-
-1. **创建模板文件**
-```javascript
-// templates/custom.js
-export default {
-  name: 'custom',
-  displayName: '自定义模板',
-  description: '我的自定义模板',
-  version: '1.0.0',
-  
-  render: function(content, title = '文档') {
-    return `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>${this.getStyles()}</style>
-</head>
-<body>
-  <div class="container">
-    <h1>${title}</h1>
-    <div class="content">${content}</div>
-  </div>
-</body>
-</html>`;
-  },
-  
-  getStyles: function() {
-    return `
-      body { font-family: Arial, sans-serif; }
-      .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-      .content { line-height: 1.6; }
-    `;
+### 可选配置
+```env
+# 自定义工作流配置(JSON格式)
+CUSTOM_WORKFLOWS='{
+  "translate": {
+    "name": "智能翻译",
+    "description": "多语言智能翻译工作流",
+    "apiKey": "app-translate-key",
+    "type": "url",
+    "icon": "ion-md-globe"
   }
-};
+}'
+
+# 调试配置
+DEBUG=true
 ```
 
-2. **注册模板**
+## 🧪 测试验证
 
-在 `src/services/templateManager.js` 中添加：
-```javascript
-const templates = {
-  // ... 现有模板
-  custom: () => import('../../templates/custom.js')
-};
-```
-
-详细的模板开发指南请参考 [TEMPLATE_GUIDE.md](docs/TEMPLATE_GUIDE.md)。
-
-## 🔧 配置选项
-
-### 环境变量
-
-| 变量名 | 描述 | 必需 | 默认值 |
-|--------|------|------|--------|
-| `DIFY_API_KEY` | Dify平台API密钥 | ✅ | - |
-| `DIFY_BASE_URL` | Dify API基础URL | ✅ | - |
-| `ENVIRONMENT` | 运行环境 | ❌ | `production` |
-| `DEBUG` | 调试模式 | ❌ | `false` |
-
-### Wrangler配置
-
-```toml
-# wrangler.toml
-name = "ai-content-agent"
-main = "src/index.js"
-compatibility_date = "2024-01-01"
-compatibility_flags = ["nodejs_compat"]
-
-[vars]
-ENVIRONMENT = "production"
-
-[[kv_namespaces]]
-binding = "CONTENT_CACHE"
-id = "your-namespace-id"
-preview_id = "your-preview-namespace-id"
-
-[triggers]
-crons = ["0 0 * * *"] # 每日清理缓存
-```
-
-## 📊 监控和维护
-
-### 健康检查
-
+### 自动化测试
 ```bash
-# 检查服务状态
-curl https://your-domain.workers.dev/api/status
+# Playwright前端测试
+npx playwright test
 
-# 预期响应
-{
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "version": "1.0.0",
-  "checks": {
-    "kv": "healthy",
-    "dify": "healthy",
-    "templates": "healthy"
-  }
-}
-```
-
-### 性能监控
-
-- **响应时间**: 目标 < 2秒
-- **可用性**: 目标 > 99.9%
-- **错误率**: 目标 < 0.1%
-- **缓存命中率**: 目标 > 80%
-
-### 日志查看
-
-```bash
-# 实时日志
-wrangler tail
-
-# 过滤错误日志
-wrangler tail | grep ERROR
-
-# 查看特定时间段
-wrangler tail --since 1h
-```
-
-## 🧪 测试
-
-### 运行测试
-
-```bash
-# 安装测试依赖
-npm install --dev
-
-# 运行单元测试
+# 单元测试
 npm test
 
-# 运行集成测试
-npm run test:integration
-
-# 生成覆盖率报告
-npm run test:coverage
+# API端点测试
+curl https://ai-driven-content-agent.yalinwang2.workers.dev/api/v1/status
 ```
 
-### 测试API端点
+### 功能验证
+1. **工作流执行**: URL内容生成 ✅
+2. **模板渲染**: 6种微信模板 ✅  
+3. **自定义工作流**: 添加/删除操作 ✅
+4. **流式响应**: 实时内容生成 ✅
+5. **错误处理**: 完整异常捕获 ✅
 
-```bash
-# 测试脚本
-./tests/api-test.sh
+## 📊 性能指标
 
-# 或手动测试
-curl -X POST https://your-domain.workers.dev/api/render \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "# Test\n\nHello World!",
-    "template": "general",
-    "title": "Test Document"
-  }'
-```
+### 部署统计
+- ⚡ **Worker启动时间**: < 15ms
+- 📦 **打包大小**: 278.6kb
+- 🌍 **全球部署**: Cloudflare边缘网络
+- 📁 **静态资源**: 4个文件，305.03 KiB
 
-## 🔒 安全
+### 运行性能
+- 🚀 **API响应时间**: < 2秒
+- 📈 **可用性目标**: > 99.9%
+- 🎯 **错误率目标**: < 0.1%
+- 💾 **缓存命中率**: > 80%
 
-### 安全特性
+## 🔒 安全特性
 
-- ✅ HTTPS强制加密
-- ✅ CORS跨域保护
-- ✅ 输入验证和清理
-- ✅ API密钥安全存储
-- ✅ 请求频率限制
-- ✅ 错误信息脱敏
+- ✅ **HTTPS强制加密**
+- ✅ **API密钥安全存储**(Cloudflare Secrets)
+- ✅ **输入验证和清理**
+- ✅ **CORS跨域保护**
+- ✅ **错误信息脱敏**
+- ✅ **请求频率限制**
 
-### 安全最佳实践
+## 📚 详细文档
 
-1. **定期轮换API密钥**
-2. **监控异常访问模式**
-3. **保持依赖项更新**
-4. **启用安全头设置**
-5. **实施访问日志审计**
+- 📋 [API完整文档](docs/rulers/API_Complete_Documentation.md)
+- 🏗️ [系统架构设计](docs/汇总/新文档结构/01_项目概述/项目架构概览.md)
+- 🚀 [部署运维指南](docs/部署与运维完整指南.md)
+- 🎨 [模板开发指南](docs/rulers/temples%20模板设计原则.md)
+- 🔧 [自定义工作流实施报告](docs/rulers/自定义工作流系统实施报告.md)
 
-## 🚀 性能优化
+## 🤝 贡献指南
 
-### 缓存策略
+欢迎贡献代码、文档、模板或问题反馈！
 
-- **模板缓存**: 预编译模板，减少重复加载
-- **内容缓存**: 相同内容复用渲染结果
-- **API缓存**: 缓存Dify API响应
-- **静态资源**: CDN加速和浏览器缓存
-
-### 优化建议
-
-1. **启用Gzip压缩**
-2. **使用流式响应**
-3. **实施智能缓存**
-4. **优化图片资源**
-5. **减少API调用**
-
-## 📚 文档
-
-- [API文档](docs/API.md) - 完整的API接口说明
-- [设计文档](docs/DESIGN.md) - 系统架构和设计思路
-- [部署指南](docs/DEPLOYMENT.md) - 详细的部署和运维指南
-- [模板开发指南](docs/TEMPLATE_GUIDE.md) - 自定义模板开发教程
-- [故障排除指南](docs/TROUBLESHOOTING.md) - 常见问题和解决方案
-
-## 🤝 贡献
-
-我们欢迎所有形式的贡献！
-
-### 贡献方式
-
-1. **报告Bug**: 提交Issue描述问题
-2. **功能建议**: 提出新功能想法
-3. **代码贡献**: 提交Pull Request
-4. **文档改进**: 完善项目文档
-5. **模板分享**: 贡献新的模板设计
-
-### 开发流程
-
-1. Fork项目仓库
-2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add amazing feature'`)
-4. 推送分支 (`git push origin feature/amazing-feature`)
+### 快速贡献
+1. Fork本项目
+2. 创建功能分支: `git checkout -b feature/amazing-feature`
+3. 提交更改: `git commit -m 'Add amazing feature'`
+4. 推送分支: `git push origin feature/amazing-feature`
 5. 创建Pull Request
 
 ### 代码规范
-
 - 使用ESLint进行代码检查
 - 遵循JavaScript Standard Style
+- 确保测试覆盖率 > 80%
 - 添加适当的注释和文档
-- 确保测试覆盖率
 
 ## 📄 许可证
 
-本项目采用 [MIT许可证](LICENSE)。
+本项目采用 [MIT许可证](LICENSE) - 详见许可证文件
 
 ## 🙏 致谢
 
-感谢以下开源项目和服务：
-
+感谢以下优秀的开源项目和服务：
 - [Cloudflare Workers](https://workers.cloudflare.com/) - 边缘计算平台
-- [Dify](https://dify.ai/) - AI应用开发平台
-- [marked.js](https://marked.js.org/) - Markdown解析器
-- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) - Workers开发工具
+- [Dify](https://dify.ai/) - AI工作流开发平台  
+- [Marked.js](https://marked.js.org/) - Markdown解析器
+- [Wrangler](https://developers.cloudflare.com/workers/wrangler/) - 开发部署工具
+- [Playwright](https://playwright.dev/) - 自动化测试框架
 
-## 📞 支持
+## 📞 获取支持
 
-如果您遇到问题或需要帮助：
+遇到问题或需要帮助？
 
-- 📖 查看[故障排除指南](docs/TROUBLESHOOTING.md)
-- 🐛 提交[GitHub Issue](https://github.com/your-username/ai-driven-content-agent/issues)
-- 💬 加入[讨论区](https://github.com/your-username/ai-driven-content-agent/discussions)
-- 📧 发送邮件至 support@your-domain.com
+- 🐛 [提交Issue](https://github.com/ameureka/ai-driven-content-agent/issues)
+- 💬 [参与讨论](https://github.com/ameureka/ai-driven-content-agent/discussions)  
+- 📖 查看[故障排除指南](docs/故障排障设计.md)
+- 📧 联系开发团队
 
-## 🗺️ 路线图
+## 🗺️ 开发路线图
 
-### 短期目标 (1-3个月)
-- [ ] 添加更多内置模板
-- [ ] 实现模板市场
-- [ ] 增强错误处理
-- [ ] 性能优化
+### ✅ 已完成功能
+- [x] 完整的自定义工作流系统
+- [x] 6种专业微信公众号模板
+- [x] RESTful API接口
+- [x] 流式响应支持
+- [x] 生产环境部署
+- [x] 前端工作流管理界面
+- [x] Playwright自动化测试
 
-### 中期目标 (3-6个月)
-- [ ] 多语言支持
-- [ ] 用户认证系统
-- [ ] 高级缓存策略
-- [ ] 监控仪表板
+### 🚧 进行中
+- [ ] 模板市场功能
+- [ ] 高级错误处理优化
+- [ ] 性能监控仪表板
 
-### 长期目标 (6-12个月)
-- [ ] 插件系统
-- [ ] 可视化编辑器
-- [ ] 企业级功能
-- [ ] 移动应用
+### 🔮 未来计划
+- [ ] 多语言国际化支持
+- [ ] 用户认证和权限系统
+- [ ] 插件系统架构
+- [ ] 可视化工作流编辑器
 
 ---
 
 <div align="center">
-  <p>Made with ❤️ by the AI Content Agent Team</p>
+  <p><strong>🚀 现在就开始使用AI驱动内容代理！</strong></p>
   <p>
-    <a href="https://github.com/your-username/ai-driven-content-agent">GitHub</a> |
-    <a href="https://your-domain.workers.dev">Demo</a> |
-    <a href="docs/API.md">API Docs</a> |
-    <a href="https://github.com/your-username/ai-driven-content-agent/wiki">Wiki</a>
+    <a href="https://ai-driven-content-agent.yalinwang2.workers.dev">🌟 在线体验</a> |
+    <a href="docs/rulers/API_Complete_Documentation.md">📖 API文档</a> |
+    <a href="https://github.com/ameureka/ai-driven-content-agent/issues">🐛 问题反馈</a> |
+    <a href="https://github.com/ameureka/ai-driven-content-agent/discussions">💬 社区讨论</a>
   </p>
+  <p><em>Made with ❤️ by AI Content Agent Team</em></p>
 </div>

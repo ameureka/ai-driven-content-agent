@@ -20,7 +20,7 @@ CUSTOM_WORKFLOWS='{
   "translate": {
     "name": "智能翻译",
     "description": "多语言智能翻译工作流",
-    "apiKey": "app-translate-example",
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb",
     "type": "url",
     "inputFields": ["url", "targetLanguage"],
     "icon": "ion-md-globe"
@@ -28,7 +28,7 @@ CUSTOM_WORKFLOWS='{
   "summary": {
     "name": "内容总结",
     "description": "文档内容智能总结",
-    "apiKey": "app-summary-example",
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb",
     "type": "text",
     "inputFields": ["title", "content", "style"],
     "icon": "ion-md-document"
@@ -36,7 +36,7 @@ CUSTOM_WORKFLOWS='{
   "analyze": {
     "name": "数据分析",
     "description": "数据分析和报告生成",
-    "apiKey": "app-analyze-example", 
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb", 
     "type": "url",
     "inputFields": ["url"],
     "icon": "ion-md-analytics"

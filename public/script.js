@@ -1459,6 +1459,59 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
       aboutModal.classList.add('hidden');
     }
   });
+  
+  // 自定义工作流相关事件监听器
+  const customWorkflowModal = document.getElementById('custom-workflow-modal');
+  const closeCustomWorkflowBtn = document.getElementById('close-custom-workflow-btn');
+  const cancelWorkflowBtn = document.getElementById('cancel-workflow-btn');
+  const customWorkflowForm = document.getElementById('custom-workflow-form');
+  
+  // 关闭自定义工作流模态框
+  if (closeCustomWorkflowBtn) {
+    closeCustomWorkflowBtn.addEventListener('click', hideCustomWorkflowModal);
+  }
+  
+  if (cancelWorkflowBtn) {
+    cancelWorkflowBtn.addEventListener('click', hideCustomWorkflowModal);
+  }
+  
+  // 点击模态框背景关闭
+  if (customWorkflowModal) {
+    customWorkflowModal.addEventListener('click', (e) => {
+      if (e.target === customWorkflowModal) {
+        hideCustomWorkflowModal();
+      }
+    });
+  }
+  
+  // 自定义工作流表单提交
+  if (customWorkflowForm) {
+    customWorkflowForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(customWorkflowForm);
+      const data = {
+        id: document.getElementById('workflow-id').value.trim().toLowerCase(),
+        name: document.getElementById('workflow-name').value.trim(),
+        description: document.getElementById('workflow-description').value.trim(),
+        type: document.getElementById('workflow-type').value,
+        apiKey: document.getElementById('workflow-api-key').value.trim(),
+        icon: document.getElementById('workflow-icon').value
+      };
+      
+      // 设置根据类型的inputFields
+      if (data.type === 'url') {
+        data.inputFields = ['url'];
+      } else if (data.type === 'text') {
+        data.inputFields = ['title', 'style', 'context'];
+      }
+      
+      // 验证表单
+      if (validateWorkflowForm(data)) {
+        await saveCustomWorkflow(data);
+      }
+    });
+  }
 
   // 查看源码按钮
   viewSourceBtn.addEventListener('click', async () => {
@@ -1604,13 +1657,16 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
       const response = await fetch('/api/v1/workflows/available');
       if (response.ok) {
         const { success, data } = await response.json();
-        if (success && data.custom) {
-          data.custom.forEach(workflow => {
+        if (success && Array.isArray(data)) {
+          // 过滤出自定义工作流（isCustom为true）
+          const customWorkflows = data.filter(workflow => workflow.isCustom);
+          customWorkflows.forEach(workflow => {
             availableWorkflows.set(workflow.id, {
               ...workflow,
               isCustom: true
             });
           });
+          console.log(`加载了 ${customWorkflows.length} 个自定义工作流`);
         }
       }
     } catch (error) {
@@ -1658,14 +1714,24 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
         <p>${workflow.description}</p>
         <span class="workflow-type">${workflow.type === 'url' ? 'URL处理' : '文本生成'}</span>
       </div>
+      ${workflow.isCustom ? '<button class="delete-workflow-btn" data-workflow-id="' + workflow.id + '" title="删除工作流"><i class="icon ion-md-close"></i></button>' : ''}
     `;
     
     return card;
   }
   
   function bindWorkflowEvents() {
-    // 工作流选择事件
+    // 工作流选择和删除事件
     workflowGrid.addEventListener('click', (e) => {
+      const deleteBtn = e.target.closest('.delete-workflow-btn');
+      if (deleteBtn) {
+        // 阻止事件冒泡，防止触发工作流选择
+        e.stopPropagation();
+        const workflowId = deleteBtn.dataset.workflowId;
+        deleteCustomWorkflow(workflowId);
+        return;
+      }
+      
       const workflowCard = e.target.closest('.workflow-card');
       if (workflowCard) {
         selectWorkflow(workflowCard.dataset.workflow);
@@ -1716,8 +1782,199 @@ ${title}是一个重要的话题，它将继续影响我们的工作和生活。
   }
   
   function showAddWorkflowModal() {
-    // TODO: 实现添加自定义工作流的模态框
-    showNotification('自定义工作流功能即将推出', 'info');
+    const modal = document.getElementById('custom-workflow-modal');
+    const form = document.getElementById('custom-workflow-form');
+    
+    // 重置表单
+    form.reset();
+    clearFormErrors();
+    
+    // 显示模态框
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // 聚焦第一个输入框
+    setTimeout(() => {
+      document.getElementById('workflow-id').focus();
+    }, 100);
+  }
+  
+  function hideCustomWorkflowModal() {
+    const modal = document.getElementById('custom-workflow-modal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  
+  function clearFormErrors() {
+    const errorElements = document.querySelectorAll('.error-message');
+    const errorInputs = document.querySelectorAll('.error');
+    
+    errorElements.forEach(el => el.remove());
+    errorInputs.forEach(el => el.classList.remove('error'));
+  }
+  
+  function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const formGroup = field.closest('.form-group');
+    
+    // 移除已存在的错误
+    const existingError = formGroup.querySelector('.error-message');
+    if (existingError) existingError.remove();
+    
+    // 添加错误样式和消息
+    field.classList.add('error');
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    formGroup.appendChild(errorDiv);
+  }
+  
+  function validateWorkflowForm(data) {
+    clearFormErrors();
+    let isValid = true;
+    
+    // 验证ID格式
+    if (!data.id.match(/^[a-z0-9-]+$/)) {
+      showFieldError('workflow-id', 'ID只能包含小写字母、数字和连字符');
+      isValid = false;
+    }
+    
+    // 验证必填字段
+    if (!data.id.trim()) {
+      showFieldError('workflow-id', '请输入工作流ID');
+      isValid = false;
+    }
+    
+    if (!data.name.trim()) {
+      showFieldError('workflow-name', '请输入工作流名称');
+      isValid = false;
+    }
+    
+    if (!data.type) {
+      showFieldError('workflow-type', '请选择工作流类型');
+      isValid = false;
+    }
+    
+    if (!data.apiKey.trim()) {
+      showFieldError('workflow-api-key', '请输入Dify API密钥');
+      isValid = false;
+    }
+    
+    // 验证API密钥格式
+    if (data.apiKey && !data.apiKey.startsWith('app-')) {
+      showFieldError('workflow-api-key', 'API密钥应以"app-"开头');
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+  
+  async function saveCustomWorkflow(data) {
+    const saveBtn = document.getElementById('save-workflow-btn');
+    const originalText = saveBtn.innerHTML;
+    
+    try {
+      // 显示加载状态
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="icon ion-md-refresh rotating"></i>保存中...';
+      
+      const response = await fetch('/api/v1/workflows/custom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getCurrentApiKey()}`
+        },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // 成功添加
+        showNotification('自定义工作流添加成功！', 'success');
+        hideCustomWorkflowModal();
+        
+        // 重新加载工作流列表
+        await loadCustomWorkflows();
+        renderWorkflowSelector();
+        
+        // 自动选择新添加的工作流
+        selectWorkflow(data.id);
+        
+      } else {
+        // 处理业务错误
+        const errorMessage = result.error?.details || result.message || '添加工作流失败';
+        showNotification(errorMessage, 'error');
+        
+        // 如果是ID冲突，高亮ID字段
+        if (result.error?.code === 'INVALID_INPUT' && errorMessage.includes('已存在')) {
+          showFieldError('workflow-id', '该ID已存在，请使用其他ID');
+        }
+      }
+      
+    } catch (error) {
+      console.error('保存自定义工作流失败:', error);
+      showNotification('网络错误，请稍后重试', 'error');
+    } finally {
+      // 恢复按钮状态
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalText;
+    }
+  }
+  
+  function getCurrentApiKey() {
+    // 从页面获取当前设置的API密钥
+    const apiKeyInput = document.getElementById('api-key');
+    return apiKeyInput ? apiKeyInput.value || 'aiwenchuang' : 'aiwenchuang';
+  }
+  
+  async function deleteCustomWorkflow(workflowId) {
+    const workflow = availableWorkflows.get(workflowId);
+    if (!workflow || !workflow.isCustom) {
+      showNotification('只能删除自定义工作流', 'error');
+      return;
+    }
+    
+    // 确认删除
+    if (!confirm(`确定要删除工作流"${workflow.name}"吗？此操作不可撤销。`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/v1/workflows/custom/${workflowId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getCurrentApiKey()}`
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // 成功删除
+        showNotification('工作流删除成功', 'success');
+        
+        // 从本地列表中移除
+        availableWorkflows.delete(workflowId);
+        
+        // 如果删除的是当前选中的工作流，切换到默认工作流
+        if (selectedWorkflow === workflowId) {
+          selectedWorkflow = 'dify-general';
+        }
+        
+        // 重新渲染工作流选择器
+        renderWorkflowSelector();
+        updateWorkflowUI();
+        
+      } else {
+        const errorMessage = result.error?.details || result.message || '删除工作流失败';
+        showNotification(errorMessage, 'error');
+      }
+      
+    } catch (error) {
+      console.error('删除自定义工作流失败:', error);
+      showNotification('网络错误，请稍后重试', 'error');
+    }
   }
 
 // 添加文章生成按钮点击事件
