@@ -1,191 +1,312 @@
-# AI-Driven Content Agent
+# CLAUDE.md
 
-## 项目概述
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code (claude.ai/code) 提供项目开发指导。
 
-这是一个基于Cloudflare Workers的智能内容生成和渲染系统，集成Dify AI工作流，支持多种微信公众号模板。系统提供完整的RESTful API、自定义工作流支持、流式响应处理，以及现代化的前端界面。
+## Project Overview | 项目概述
 
-## 核心功能
+**AI-Driven Content Agent** - A Serverless AI content generation system built on Cloudflare Workers, integrating Dify AI workflows for intelligent content creation and rendering with professional WeChat templates.
 
-- **智能内容生成**: 基于AI工作流的URL内容分析和文章生成
-- **多模板渲染**: 支持6种专业微信公众号模板
-- **自定义工作流**: 支持用户配置自定义Dify工作流
-- **流式响应**: 实时处理反馈和状态更新
-- **RESTful API**: 完整的企业级API接口
-- **响应式界面**: 现代化的工作流选择器和状态管理
+**AI驱动内容代理** - 基于Cloudflare Workers的无服务器AI内容生成系统，集成Dify AI工作流引擎，实现智能内容创作，并提供专业的微信公众号文章模板。
 
-## 技术栈
+### Architecture | 系统架构
+- **Platform | 平台**: Cloudflare Workers (Edge Computing | 边缘计算)
+- **AI Engine | AI引擎**: Dify AI Workflow Platform (工作流平台)
+- **Storage | 存储**: Cloudflare KV (Content persistence | 内容持久化) + R2 (Static assets | 静态资源)
+- **API | 接口**: RESTful API with streaming support (SSE | 支持流式响应)
+- **Templates | 模板**: 6 professional WeChat article templates (6种专业微信文章模板)
 
-- **运行环境**: Cloudflare Workers
-- **前端**: 原生JavaScript + HTML5 + CSS3 + Server-Sent Events
-- **后端**: Node.js + Cloudflare Workers API + Hono.js框架
-- **AI集成**: Dify工作流平台 + 自定义工作流管理
-- **测试框架**: Vitest + Playwright自动化测试
-- **API设计**: RESTful架构 + 统一响应格式
+## Core Components | 核心组件
 
-## 项目结构
-
+### Project Structure | 项目结构
 ```
-src/
-├── api/          # API路由和处理
-├── services/     # 业务逻辑服务
-└── styles/       # 样式文件
-templates/        # 6种内容模板
-public/          # 静态资源
-test/            # 测试文件
-docs/            # 文档
+ai-driven-content-agent/
+├── src/
+│   ├── index.js              # Main entry point, request routing | 主入口，请求路由
+│   ├── api/
+│   │   ├── routes.js         # API router with RESTful endpoints | RESTful API路由器
+│   │   ├── dify.js           # Dify URL workflow integration | URL工作流集成
+│   │   └── difyArticle.js    # Dify article workflow integration | 文章工作流集成
+│   └── services/
+│       └── templateManager.js # Template management service | 模板管理服务
+├── templates/                # 6 WeChat article templates | 6个微信文章模板
+├── public/                   # Frontend static files | 前端静态文件
+├── test/                     # Test files | 测试文件
+├── docs/                     # Documentation | 项目文档
+└── wrangler.toml            # Cloudflare Workers configuration | Workers配置
 ```
 
-## 开发命令
+## Development Commands | 开发命令
 
+### Essential Commands | 常用命令
+- `npm install` - Install dependencies | 安装依赖
+- `npm run dev` - Start local development server (port 8787) | 启动本地开发服务器（端口8787）
+- `npm run deploy` - Deploy to Cloudflare Workers | 部署到Cloudflare Workers
+- `npm test` - Run tests with Vitest | 运行测试
+- `wrangler login` - Authenticate with Cloudflare | 登录Cloudflare账号
+- `wrangler secret put <KEY>` - Set environment secrets | 设置环境密钥
+
+### Deployment | 部署流程
 ```bash
-# 本地开发
-npm run dev
-
-# 部署
+# Deploy to production | 部署到生产环境
 npm run deploy
 
-# 运行测试
-npm test
-
-# 构建
-npm run build
+# Set required secrets | 设置必需的密钥
+wrangler secret put DIFY_API_KEY
+wrangler secret put DIFY_ARTICLE_API_KEY
+wrangler secret put API_KEY
 ```
 
-## 模板系统
+## API Reference | API参考
 
-支持6种微信公众号模板:
-- article_wechat - 文章模板
-- tech_analysis_wechat - 技术分析模板  
-- news_modern_wechat - 现代新闻模板
-- github_project_wechat - GitHub项目模板
-- ai_benchmark_wechat - AI基准测试模板
-- professional_analysis_wechat - 专业分析模板
+### Base URL | 基础地址
+- **Production | 生产环境**: `https://ai-driven-content-agent.yalinwang2.workers.dev/api/v1`
+- **Local Dev | 本地开发**: `http://localhost:8787/api/v1`
 
-## API端点概览
+### Authentication | 认证方式
+```
+Authorization: Bearer <API_KEY>
+```
+Test API Key | 测试密钥: `aiwenchuang`
 
-### 系统状态
-- `GET /api/v1/status` - 系统健康状态检查
+### Core Endpoints | 核心接口
 
-### 模板管理
-- `GET /api/v1/templates` - 获取可用模板列表
-- `GET /api/v1/templates/{templateId}` - 获取模板详情
+#### 1. System Status | 系统状态
+- `GET /api/v1/status` - Health check and capabilities | 健康检查和系统能力
 
-### 工作流管理
-- `GET /api/v1/workflows/available` - 获取可用工作流列表
-- `GET /api/v1/workflows` - 获取工作流信息（兼容接口）
-- `GET /api/v1/workflows/{workflowId}` - 获取工作流详情
-- `POST /api/v1/workflows/{workflowId}/execute` - 执行工作流
-- `POST /api/v1/workflows/custom` - 添加自定义工作流
-- `DELETE /api/v1/workflows/custom/{workflowId}` - 删除自定义工作流
+#### 2. Workflows | 工作流管理
+- `GET /api/v1/workflows/available` - List all workflows | 获取所有可用工作流
+- `POST /api/v1/workflows/{id}/execute` - Execute workflow | 执行工作流
+  - Add `?stream=true` for SSE streaming response | 添加`?stream=true`启用流式响应
+- `POST /api/v1/workflows/custom` - Add custom workflow | 添加自定义工作流
+- `DELETE /api/v1/workflows/custom/{id}` - Remove custom workflow | 删除自定义工作流
 
-### 内容管理
-- `POST /api/v1/content/render` - 内容渲染
-- `GET /api/v1/content/{contentId}` - 获取内容详情
-- `GET /api/v1/content/{contentId}/html` - 获取HTML源码
-- `GET /api/v1/content/{contentId}/url` - 获取访问链接
-- `GET /api/v1/content` - 获取内容列表
-- `DELETE /api/v1/content/{contentId}` - 删除内容
+#### 3. Templates | 模板管理
+- `GET /api/v1/templates` - List available templates | 获取模板列表
+- `GET /api/v1/templates/{id}` - Get template details | 获取模板详情
 
-## 工作流系统
+#### 4. Content Management | 内容管理
+- `POST /api/v1/content/render` - Render markdown to HTML | 渲染Markdown为HTML
+- `GET /api/v1/content` - List all content (paginated) | 获取内容列表（分页）
+- `GET /api/v1/content/{id}` - Get content details | 获取内容详情
+- `GET /api/v1/content/{id}/html` - Get rendered HTML | 获取渲染后的HTML
+- `DELETE /api/v1/content/{id}` - Delete content | 删除内容
 
-### 默认工作流
-- **dify-general**: URL内容生成工作流
-- **dify-article**: AI文章生成工作流
+### Workflow Types | 工作流类型
 
-### 自定义工作流
-支持通过环境变量配置自定义工作流：
-
-```env
-CUSTOM_WORKFLOWS='{
-  "translate": {
-    "name": "智能翻译",
-    "apiKey": "app-translate-example",
-    "type": "url",
-    "icon": "ion-md-globe"
+#### URL Workflow | URL内容生成 (`dify-general`)
+```json
+{
+  "inputs": {
+    "url": "https://example.com"
   }
-}'
+}
 ```
 
-## 环境变量
+#### Article Workflow | 文章创作 (`dify-article`)
+```json
+{
+  "title": "Article Title",  // 文章标题
+  "style": "professional",   // 写作风格
+  "context": "Additional context"  // 补充上下文
+}
+```
 
+## Environment Configuration | 环境配置
+
+### Required Environment Variables | 必需的环境变量
 ```env
-# 必需配置
-DIFY_API_KEY=your_dify_general_api_key
-DIFY_ARTICLE_API_KEY=your_dify_article_api_key
+# Dify AI API Keys | Dify AI密钥
+DIFY_API_KEY=app-your-general-workflow-key
+DIFY_ARTICLE_API_KEY=app-your-article-workflow-key
 
-# 可选配置
-DIFY_BASE_URL=https://api.dify.ai/v1
-ENVIRONMENT=development
-CUSTOM_WORKFLOWS='{}'
+# System API Key | 系统API密钥
+API_KEY=your-api-access-key
 
-# 服务配置
-API_VERSION=v1
-MAX_CONTENT_SIZE=10485760
+# Custom Workflows (Optional) | 自定义工作流（可选）
+CUSTOM_WORKFLOWS='{"translate":{"name":"Translation","apiKey":"app-key","type":"url"}}'
 ```
 
-## 测试
+### Cloudflare Bindings | Cloudflare绑定
+- `MARKDOWN_KV` - KV namespace for content storage | 内容存储的KV命名空间
+- `ASSETS` - R2 bucket for static files | 静态文件的R2存储桶
+- `LOCAL_ASSETS` - Local development assets | 本地开发资源
 
-### 自动化测试
+## Key Features | 核心特性
+
+### 1. Streaming Response (SSE) | 流式响应
+The system supports real-time content generation with Server-Sent Events:
+系统支持通过Server-Sent Events实现实时内容生成：
+
+```javascript
+// Enable streaming by adding ?stream=true | 通过添加?stream=true启用流式响应
+fetch('/api/v1/workflows/dify-article/execute?stream=true', {
+  method: 'POST',
+  headers: { 'Authorization': 'Bearer aiwenchuang' },
+  body: JSON.stringify({ title: 'Test' })
+})
+```
+
+### 2. Template System | 模板系统
+6 professional WeChat templates available | 提供6种专业的微信公众号模板:
+- `article_wechat` - General articles | 通用文章
+- `tech_analysis_wechat` - Technical analysis | 技术分析
+- `news_modern_wechat` - News content | 新闻资讯
+- `github_project_wechat` - Project showcases | 项目展示
+- `ai_benchmark_wechat` - AI benchmarks | AI基准测试
+- `professional_analysis_wechat` - Professional analysis | 专业分析
+
+### 3. Error Handling | 错误处理
+The system includes comprehensive error handling | 系统包含完善的错误处理机制:
+- Automatic retry with exponential backoff | 指数退避自动重试
+- Fallback to mock data when Dify is unavailable | Dify不可用时降级到模拟数据
+- Graceful degradation for template rendering | 模板渲染优雅降级
+
+## Testing | 测试
+
+### Run Tests | 运行测试
 ```bash
-# 运行Playwright测试
-npx playwright test
-
-# 运行工作流选择器测试
-npx playwright test test/workflow-selector.spec.js
-
-# 运行单元测试
-npm test
+npm test                    # Run all tests | 运行所有测试
+npm run test:watch         # Watch mode | 监听模式
+npm run test:coverage      # Coverage report | 覆盖率报告
 ```
 
-### 手动测试
-1. 访问 `http://localhost:8787`
-2. 在浏览器控制台运行测试脚本：
-   ```javascript
-   // 加载测试工具
-   // 运行工作流测试
-   workflowTester.runAllWorkflowTests()
-   ```
+### API Testing with cURL | 使用cURL测试API
+```bash
+# Check status | 检查状态
+curl http://localhost:8787/api/v1/status
 
-## 部署
+# Execute workflow | 执行工作流
+curl -X POST http://localhost:8787/api/v1/workflows/dify-general/execute \
+  -H "Authorization: Bearer aiwenchuang" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs":{"url":"https://example.com"}}'
+```
 
-### 开发环境
+## Error Codes | 错误码
+
+| Code | HTTP Status | Description | 说明 |
+|------|------------|-------------|------|
+| `INVALID_API_KEY` | 403 | Invalid API key | API密钥无效 |
+| `MISSING_API_KEY` | 401 | Missing API key | 缺少API密钥 |
+| `INVALID_INPUT` | 400 | Invalid input parameters | 输入参数无效 |
+| `TEMPLATE_NOT_FOUND` | 404 | Template not found | 模板不存在 |
+| `WORKFLOW_NOT_FOUND` | 404 | Workflow not found | 工作流不存在 |
+| `WORKFLOW_ERROR` | 500 | Workflow execution failed | 工作流执行失败 |
+| `INTERNAL_ERROR` | 500 | Internal server error | 内部服务器错误 |
+
+## Development Tips | 开发技巧
+
+### Local Development | 本地开发
+1. Create `.dev.vars` file for local environment variables | 创建`.dev.vars`文件配置本地环境变量:
+```env
+DIFY_API_KEY=your-key
+DIFY_ARTICLE_API_KEY=your-key
+API_KEY=aiwenchuang
+```
+
+2. Start development server | 启动开发服务器:
 ```bash
 npm run dev
 ```
 
-### 生产部署
-```bash
-# 部署到Cloudflare Workers
-npm run deploy
+3. Access local instance | 访问本地实例:
+- API: http://localhost:8787/api/v1
+- Frontend | 前端: http://localhost:8787
 
-# 查看部署状态
-wrangler tail
-```
+### Debugging | 调试
+- Check console logs in terminal for server-side debugging | 查看终端控制台日志进行服务端调试
+- Use `wrangler tail` to stream production logs | 使用`wrangler tail`查看生产环境日志
+- Enable verbose logging with `console.log()` statements | 使用`console.log()`添加详细日志
 
-## 项目特性
+### Common Issues | 常见问题
 
-### 1. 统一响应格式
-所有API端点使用统一的响应格式：
+1. **KV Namespace Not Found | KV命名空间未找到**
+   - Run `wrangler kv:namespace create MARKDOWN_KV` | 运行创建KV命名空间命令
+   - Update the ID in wrangler.toml | 更新wrangler.toml中的ID
+
+2. **Authentication Errors | 认证错误**
+   - Verify API_KEY is set correctly | 验证API_KEY设置是否正确
+   - Check Authorization header format | 检查Authorization请求头格式
+
+3. **Dify Timeout | Dify超时**
+   - System has automatic retry mechanism | 系统有自动重试机制
+   - Falls back to mock data after failures | 失败后降级到模拟数据
+
+## Performance Metrics | 性能指标
+
+- **Worker Startup | Worker启动时间**: < 15ms
+- **API Response | API响应时间**: < 2s (non-streaming | 非流式)
+- **Bundle Size | 打包大小**: ~280KB
+- **Global Deployment | 全球部署**: Cloudflare edge network | Cloudflare边缘网络
+- **Availability Target | 可用性目标**: > 99.9%
+
+## Security Considerations | 安全考虑
+
+- All API keys stored as Cloudflare Secrets | 所有API密钥存储为Cloudflare Secrets
+- HTTPS enforced for all endpoints | 所有端点强制使用HTTPS
+- Input validation and sanitization | 输入验证和清理
+- CORS headers configured | 配置CORS头
+- Rate limiting via Cloudflare | 通过Cloudflare进行速率限制
+
+## Deployment Checklist | 部署清单
+
+- [ ] Set all required environment variables | 设置所有必需的环境变量
+- [ ] Configure KV namespace bindings | 配置KV命名空间绑定
+- [ ] Test API endpoints locally | 本地测试API端点
+- [ ] Verify Dify workflow connections | 验证Dify工作流连接
+- [ ] Deploy to Cloudflare Workers | 部署到Cloudflare Workers
+- [ ] Test production endpoints | 测试生产环境端点
+- [ ] Monitor with `wrangler tail` | 使用`wrangler tail`监控
+
+## Support Resources | 支持资源
+
+- **Documentation | 文档**: `/docs/API_Complete_Documentation.md`
+- **API Wiki | API维基**: `/wiki` endpoint
+- **GitHub Issues | 问题反馈**: Report bugs and feature requests | 报告bug和功能请求
+- **Production URL | 生产环境地址**: https://ai-driven-content-agent.yalinwang2.workers.dev
+
+## Important Notes | 重要说明
+
+### API Response Format | API响应格式
+All API responses follow a standard format | 所有API响应遵循标准格式:
+
+**Success Response | 成功响应**:
 ```json
 {
   "success": true,
   "message": "操作成功",
   "data": {},
   "meta": {
-    "timestamp": "2025-01-15T00:00:00.000Z",
+    "timestamp": "2025-08-15T00:00:00Z",
     "version": "v1"
   }
 }
 ```
 
-### 2. 流式响应支持
-工作流执行支持Server-Sent Events流式响应：
-```javascript
-const eventSource = new EventSource('/api/v1/workflows/dify-general/execute?stream=true');
+**Error Response | 错误响应**:
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "错误描述",
+    "details": "详细信息"
+  }
+}
 ```
 
-### 3. 错误处理
-完整的错误分类和处理机制，包括客户端错误、服务器错误、认证错误等。
+### Workflow Execution | 工作流执行
+The system supports two execution modes | 系统支持两种执行模式:
+1. **Blocking Mode | 阻塞模式**: Synchronous response | 同步响应
+2. **Streaming Mode | 流式模式**: Real-time SSE updates | 实时SSE更新
 
-### 4. 向后兼容
-保持与旧版本API的完全兼容，确保平滑升级。
+### Template Rendering | 模板渲染
+Templates are optimized for WeChat articles with | 模板针对微信文章优化:
+- Mobile-first design | 移动优先设计
+- WeChat editor compatibility | 微信编辑器兼容性
+- Professional styling | 专业样式
+
+## License | 许可证
+
+MIT License - See LICENSE file for details | MIT许可证 - 详见LICENSE文件

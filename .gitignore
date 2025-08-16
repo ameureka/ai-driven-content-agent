@@ -170,3 +170,14 @@ dist
 
 .dev.vars
 .wrangler/
+
+# Backup files
+*.backup
+*.bak
+*.old
+wrangler.toml.backup
+wrangler.toml.kv-backup
+
+# IDE
+.DS_Store
+Thumbs.db

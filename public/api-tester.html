@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI驱动内容代理 - API端点测试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .env-switcher {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .env-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .env-option.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .env-option h3 {
+            margin-bottom: 5px;
+        }
+        
+        .env-option small {
+            opacity: 0.8;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+        
+        .api-category {
+            margin-bottom: 20px;
+        }
+        
+        .api-category h3 {
+            color: #667eea;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .api-endpoint {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .api-endpoint:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+        
+        .api-endpoint.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .api-endpoint .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .method.GET { background: #61affe; color: white; }
+        .method.POST { background: #49cc90; color: white; }
+        .method.PUT { background: #fca130; color: white; }
+        .method.DELETE { background: #f93e3e; color: white; }
+        
+        .api-endpoint .path {
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .testing-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .endpoint-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .endpoint-info h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .endpoint-url {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #666;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+        
+        .params-section {
+            margin-bottom: 25px;
+        }
+        
+        .params-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .param-group {
+            margin-bottom: 15px;
+        }
+        
+        .param-group label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .param-group label .required {
+            color: #f93e3e;
+        }
+        
+        .param-group input,
+        .param-group textarea,
+        .param-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .param-group input:focus,
+        .param-group textarea:focus,
+        .param-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .param-group textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .param-group small {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        .test-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .response-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 200px;
+        }
+        
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .response-header h3 {
+            color: #333;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .response-body {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stream-event {
+            background: #e8f4f8;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+        }
+        
+        .help-text {
+            background: #fffbf0;
+            border: 1px solid #ffe4b5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI驱动内容代理 - API端点测试工具</h1>
+            <p>全面测试所有API端点，支持开发环境和生产环境切换</p>
+        </div>
+        
+        <div class="env-switcher">
+            <div class="env-option active" data-env="development">
+                <h3>🔧 开发环境</h3>
+                <small>http://localhost:8787</small>
+            </div>
+            <div class="env-option" data-env="production">
+                <h3>🌐 生产环境</h3>
+                <small>https://ai-driven-content-agent.yalinwang2.workers.dev</small>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="api-category">
+                    <h3>系统管理</h3>
+                    <div class="api-endpoint" data-endpoint="status">
+                        <span class="method GET">GET</span>
+                        <span class="path">/status</span>
+                    </div>
+                </div>
+                
+                <div class="api-category">
+                    <h3>模板管理</h3>
+                    <div class="api-endpoint" data-endpoint="templates-list">
+                        <span class="method GET">GET</span>
+                        <span class="path">/templates</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="templates-detail">
+                        <span class="method GET">GET</span>
+                        <span class="path">/templates/{id}</span>
+                    </div>
+                </div>
+                
+                <div class="api-category">
+                    <h3>工作流管理</h3>
+                    <div class="api-endpoint" data-endpoint="workflows-list">
+                        <span class="method GET">GET</span>
+                        <span class="path">/workflows/available</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="workflows-execute">
+                        <span class="method POST">POST</span>
+                        <span class="path">/workflows/{id}/execute</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="workflows-custom-add">
+                        <span class="method POST">POST</span>
+                        <span class="path">/workflows/custom</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="workflows-custom-delete">
+                        <span class="method DELETE">DELETE</span>
+                        <span class="path">/workflows/custom/{id}</span>
+                    </div>
+                </div>
+                
+                <div class="api-category">
+                    <h3>内容管理</h3>
+                    <div class="api-endpoint" data-endpoint="content-render">
+                        <span class="method POST">POST</span>
+                        <span class="path">/content/render</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="content-list">
+                        <span class="method GET">GET</span>
+                        <span class="path">/content</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="content-detail">
+                        <span class="method GET">GET</span>
+                        <span class="path">/content/{id}</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="content-html">
+                        <span class="method GET">GET</span>
+                        <span class="path">/content/{id}/html</span>
+                    </div>
+                    <div class="api-endpoint" data-endpoint="content-delete">
+                        <span class="method DELETE">DELETE</span>
+                        <span class="path">/content/{id}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testing-panel">
+                <div id="endpoint-details">
+                    <div class="endpoint-info">
+                        <h2>选择一个API端点开始测试</h2>
+                        <p style="margin-top: 10px; color: #666;">从左侧列表中选择要测试的API端点</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // API端点配置
+        const endpoints = {
+            'status': {
+                name: '系统状态',
+                method: 'GET',
+                path: '/api/v1/status',
+                description: '获取系统健康状态和能力信息',
+                requiresAuth: false,
+                params: []
+            },
+            'templates-list': {
+                name: '模板列表',
+                method: 'GET',
+                path: '/api/v1/templates',
+                description: '获取所有可用的模板列表',
+                requiresAuth: true,
+                params: []
+            },
+            'templates-detail': {
+                name: '模板详情',
+                method: 'GET',
+                path: '/api/v1/templates/{id}',
+                description: '获取指定模板的详细信息',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '模板ID',
+                        default: 'article_wechat',
+                        options: ['article_wechat', 'tech_analysis_wechat', 'news_modern_wechat', 'github_project_wechat', 'ai_benchmark_wechat', 'professional_analysis_wechat']
+                    }
+                ]
+            },
+            'workflows-list': {
+                name: '工作流列表',
+                method: 'GET',
+                path: '/api/v1/workflows/available',
+                description: '获取所有可用的工作流列表',
+                requiresAuth: true,
+                params: []
+            },
+            'workflows-execute': {
+                name: '执行工作流',
+                method: 'POST',
+                path: '/api/v1/workflows/{id}/execute',
+                description: '执行指定的工作流',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '工作流ID',
+                        default: 'dify-general',
+                        options: ['dify-general', 'dify-article']
+                    },
+                    {
+                        name: 'stream',
+                        type: 'query',
+                        required: false,
+                        description: '是否使用流式响应',
+                        default: 'false',
+                        options: ['true', 'false']
+                    },
+                    {
+                        name: 'body',
+                        type: 'body',
+                        required: true,
+                        description: '请求体 (JSON格式)',
+                        default: '{\n  "inputs": {\n    "url": "https://example.com"\n  }\n}',
+                        examples: {
+                            'URL工作流': '{\n  "inputs": {\n    "url": "https://example.com"\n  }\n}',
+                            '文章工作流': '{\n  "title": "测试文章",\n  "style": "professional",\n  "context": "这是一篇测试文章"\n}'
+                        }
+                    }
+                ]
+            },
+            'workflows-custom-add': {
+                name: '添加自定义工作流',
+                method: 'POST',
+                path: '/api/v1/workflows/custom',
+                description: '添加新的自定义工作流',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'body',
+                        type: 'body',
+                        required: true,
+                        description: '工作流配置 (JSON格式)',
+                        default: '{\n  "id": "custom-workflow",\n  "name": "自定义工作流",\n  "description": "测试用自定义工作流",\n  "apiKey": "app-xxx",\n  "type": "url",\n  "inputFields": ["url"]\n}'
+                    }
+                ]
+            },
+            'workflows-custom-delete': {
+                name: '删除自定义工作流',
+                method: 'DELETE',
+                path: '/api/v1/workflows/custom/{id}',
+                description: '删除指定的自定义工作流',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '工作流ID',
+                        default: 'custom-workflow'
+                    }
+                ]
+            },
+            'content-render': {
+                name: '渲染内容',
+                method: 'POST',
+                path: '/api/v1/content/render',
+                description: '将Markdown内容渲染为HTML',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'body',
+                        type: 'body',
+                        required: true,
+                        description: '请求体 (JSON格式)',
+                        default: '{\n  "content": "# 标题\\n\\n这是测试内容",\n  "template": "article_wechat"\n}'
+                    }
+                ]
+            },
+            'content-list': {
+                name: '内容列表',
+                method: 'GET',
+                path: '/api/v1/content',
+                description: '获取所有内容列表',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'page',
+                        type: 'query',
+                        required: false,
+                        description: '页码',
+                        default: '1'
+                    },
+                    {
+                        name: 'limit',
+                        type: 'query',
+                        required: false,
+                        description: '每页数量',
+                        default: '10'
+                    }
+                ]
+            },
+            'content-detail': {
+                name: '内容详情',
+                method: 'GET',
+                path: '/api/v1/content/{id}',
+                description: '获取指定内容的详细信息',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '内容ID',
+                        default: 'test-content-id'
+                    }
+                ]
+            },
+            'content-html': {
+                name: '内容HTML',
+                method: 'GET',
+                path: '/api/v1/content/{id}/html',
+                description: '获取内容的HTML渲染结果',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '内容ID',
+                        default: 'test-content-id'
+                    }
+                ]
+            },
+            'content-delete': {
+                name: '删除内容',
+                method: 'DELETE',
+                path: '/api/v1/content/{id}',
+                description: '删除指定的内容',
+                requiresAuth: true,
+                params: [
+                    {
+                        name: 'id',
+                        type: 'path',
+                        required: true,
+                        description: '内容ID',
+                        default: 'test-content-id'
+                    }
+                ]
+            }
+        };
+        
+        // 环境配置
+        const environments = {
+            development: {
+                baseUrl: 'http://localhost:8787',
+                apiKey: 'aiwenchuang'
+            },
+            production: {
+                baseUrl: 'https://ai-driven-content-agent.yalinwang2.workers.dev',
+                apiKey: 'aiwenchuang'
+            }
+        };
+        
+        let currentEnv = 'development';
+        let currentEndpoint = null;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEnvironmentSwitcher();
+            setupEndpointSelectors();
+        });
+        
+        // 环境切换
+        function setupEnvironmentSwitcher() {
+            document.querySelectorAll('.env-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.env-option').forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    currentEnv = option.dataset.env;
+                    
+                    if (currentEndpoint) {
+                        renderEndpointDetails(currentEndpoint);
+                    }
+                });
+            });
+        }
+        
+        // 端点选择
+        function setupEndpointSelectors() {
+            document.querySelectorAll('.api-endpoint').forEach(element => {
+                element.addEventListener('click', () => {
+                    document.querySelectorAll('.api-endpoint').forEach(e => e.classList.remove('active'));
+                    element.classList.add('active');
+                    
+                    const endpointKey = element.dataset.endpoint;
+                    currentEndpoint = endpointKey;
+                    renderEndpointDetails(endpointKey);
+                });
+            });
+        }
+        
+        // 渲染端点详情
+        function renderEndpointDetails(endpointKey) {
+            const endpoint = endpoints[endpointKey];
+            if (!endpoint) return;
+            
+            const env = environments[currentEnv];
+            let fullPath = env.baseUrl + endpoint.path;
+            
+            let html = `
+                <div class="endpoint-info">
+                    <h2>${endpoint.name}</h2>
+                    <p>${endpoint.description}</p>
+                    <div class="endpoint-url">
+                        <strong>${endpoint.method}</strong> ${fullPath}
+                    </div>
+                </div>
+            `;
+            
+            // 认证信息
+            if (endpoint.requiresAuth) {
+                html += `
+                    <div class="params-section">
+                        <h3>🔐 认证信息</h3>
+                        <div class="param-group">
+                            <label>API密钥 <span class="required">*</span></label>
+                            <input type="text" id="apiKey" value="${env.apiKey}" placeholder="Bearer token">
+                            <small>在请求头中添加: Authorization: Bearer {apiKey}</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 参数输入
+            if (endpoint.params.length > 0) {
+                html += '<div class="params-section"><h3>📝 请求参数</h3>';
+                
+                endpoint.params.forEach(param => {
+                    html += '<div class="param-group">';
+                    html += `<label>${param.description} ${param.required ? '<span class="required">*</span>' : ''}</label>`;
+                    
+                    if (param.type === 'body') {
+                        // 如果有示例，添加选择器
+                        if (param.examples) {
+                            html += '<select id="example-selector" style="margin-bottom: 10px;">';
+                            html += '<option value="">选择示例...</option>';
+                            Object.keys(param.examples).forEach(key => {
+                                html += `<option value="${encodeURIComponent(param.examples[key])}">${key}</option>`;
+                            });
+                            html += '</select>';
+                        }
+                        html += `<textarea id="param-${param.name}" placeholder="JSON格式">${param.default || ''}</textarea>`;
+                    } else if (param.options) {
+                        html += `<select id="param-${param.name}">`;
+                        param.options.forEach(option => {
+                            html += `<option value="${option}" ${option === param.default ? 'selected' : ''}>${option}</option>`;
+                        });
+                        html += '</select>';
+                    } else {
+                        html += `<input type="text" id="param-${param.name}" value="${param.default || ''}" placeholder="${param.description}">`;
+                    }
+                    
+                    if (param.type === 'path') {
+                        html += '<small>路径参数 - 将替换URL中的 {' + param.name + '}</small>';
+                    } else if (param.type === 'query') {
+                        html += '<small>查询参数 - 将添加到URL末尾</small>';
+                    } else if (param.type === 'body') {
+                        html += '<small>请求体 - JSON格式数据</small>';
+                    }
+                    
+                    html += '</div>';
+                });
+                
+                html += '</div>';
+            }
+            
+            // 操作按钮
+            html += `
+                <div class="test-actions">
+                    <button class="btn btn-primary" onclick="executeTest('${endpointKey}')">
+                        🚀 执行测试
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearResponse()">
+                        🔄 清除结果
+                    </button>
+                </div>
+            `;
+            
+            // 响应区域
+            html += `
+                <div class="response-section">
+                    <div class="response-header">
+                        <h3>响应结果</h3>
+                        <div id="status-indicator"></div>
+                    </div>
+                    <div id="response-body" class="response-body">
+                        等待测试...
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('endpoint-details').innerHTML = html;
+            
+            // 设置示例选择器事件
+            const exampleSelector = document.getElementById('example-selector');
+            if (exampleSelector) {
+                exampleSelector.addEventListener('change', (e) => {
+                    if (e.target.value) {
+                        document.getElementById('param-body').value = decodeURIComponent(e.target.value);
+                    }
+                });
+            }
+        }
+        
+        // 执行测试
+        async function executeTest(endpointKey) {
+            const endpoint = endpoints[endpointKey];
+            const env = environments[currentEnv];
+            
+            // 构建URL
+            let url = env.baseUrl + endpoint.path;
+            const queryParams = [];
+            
+            // 处理参数
+            endpoint.params.forEach(param => {
+                const value = document.getElementById(`param-${param.name}`)?.value;
+                
+                if (param.type === 'path' && value) {
+                    url = url.replace(`{${param.name}}`, value);
+                } else if (param.type === 'query' && value) {
+                    queryParams.push(`${param.name}=${encodeURIComponent(value)}`);
+                }
+            });
+            
+            if (queryParams.length > 0) {
+                url += '?' + queryParams.join('&');
+            }
+            
+            // 准备请求选项
+            const options = {
+                method: endpoint.method,
+                headers: {}
+            };
+            
+            // 添加认证
+            if (endpoint.requiresAuth) {
+                const apiKey = document.getElementById('apiKey')?.value || env.apiKey;
+                options.headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            
+            // 添加请求体
+            const bodyParam = endpoint.params.find(p => p.type === 'body');
+            if (bodyParam) {
+                const bodyValue = document.getElementById(`param-${bodyParam.name}`)?.value;
+                if (bodyValue) {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = bodyValue;
+                }
+            }
+            
+            // 显示加载状态
+            showLoading();
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, options);
+                const elapsed = Date.now() - startTime;
+                
+                // 检查是否是流式响应
+                const contentType = response.headers.get('content-type');
+                if (contentType?.includes('event-stream')) {
+                    await handleStreamResponse(response, elapsed);
+                } else {
+                    await handleJsonResponse(response, elapsed);
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        // 处理JSON响应
+        async function handleJsonResponse(response, elapsed) {
+            const statusIndicator = document.getElementById('status-indicator');
+            const responseBody = document.getElementById('response-body');
+            
+            try {
+                const data = await response.json();
+                
+                statusIndicator.innerHTML = `
+                    <span class="status-badge ${response.ok ? 'success' : 'error'}">
+                        ${response.status} ${response.statusText} (${elapsed}ms)
+                    </span>
+                `;
+                
+                responseBody.textContent = JSON.stringify(data, null, 2);
+                
+                // 语法高亮
+                highlightJson(responseBody);
+            } catch (error) {
+                statusIndicator.innerHTML = `
+                    <span class="status-badge error">
+                        ${response.status} ${response.statusText} (${elapsed}ms)
+                    </span>
+                `;
+                
+                const text = await response.text();
+                responseBody.textContent = text || '无响应内容';
+            }
+        }
+        
+        // 处理流式响应
+        async function handleStreamResponse(response, elapsed) {
+            const statusIndicator = document.getElementById('status-indicator');
+            const responseBody = document.getElementById('response-body');
+            
+            statusIndicator.innerHTML = `
+                <span class="status-badge success">
+                    ${response.status} 流式响应 (${elapsed}ms)
+                </span>
+            `;
+            
+            responseBody.innerHTML = '<div class="help-text">📡 正在接收流式数据...</div>';
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let eventCount = 0;
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                let boundary;
+                while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+                    const event = buffer.substring(0, boundary);
+                    buffer = buffer.substring(boundary + 2);
+                    
+                    if (event.startsWith('data: ')) {
+                        eventCount++;
+                        const data = event.substring(6);
+                        
+                        if (data === '[DONE]') {
+                            responseBody.innerHTML += '<div class="stream-event">✅ 流式传输完成</div>';
+                            return;
+                        }
+                        
+                        try {
+                            const parsed = JSON.parse(data);
+                            const eventHtml = `
+                                <div class="stream-event">
+                                    <strong>事件 #${eventCount}</strong>: ${parsed.event || 'data'}
+                                    <pre style="margin-top: 5px; font-size: 12px;">${JSON.stringify(parsed, null, 2)}</pre>
+                                </div>
+                            `;
+                            responseBody.innerHTML += eventHtml;
+                        } catch (e) {
+                            responseBody.innerHTML += `<div class="stream-event">原始数据: ${data}</div>`;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 显示加载状态
+        function showLoading() {
+            const statusIndicator = document.getElementById('status-indicator');
+            const responseBody = document.getElementById('response-body');
+            
+            statusIndicator.innerHTML = '<span class="status-badge pending">请求中...</span>';
+            responseBody.innerHTML = '<div class="loading"><div class="spinner"></div><p>正在发送请求...</p></div>';
+        }
+        
+        // 显示错误
+        function showError(message) {
+            const statusIndicator = document.getElementById('status-indicator');
+            const responseBody = document.getElementById('response-body');
+            
+            statusIndicator.innerHTML = '<span class="status-badge error">请求失败</span>';
+            responseBody.innerHTML = `<div style="color: #f93e3e;">❌ 错误: ${message}</div>`;
+        }
+        
+        // 清除响应
+        function clearResponse() {
+            const statusIndicator = document.getElementById('status-indicator');
+            const responseBody = document.getElementById('response-body');
+            
+            statusIndicator.innerHTML = '';
+            responseBody.textContent = '等待测试...';
+        }
+        
+        // JSON语法高亮
+        function highlightJson(element) {
+            let html = element.textContent;
+            
+            // 高亮字符串
+            html = html.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span style="color: #a31515;">"$1"</span>');
+            
+            // 高亮数字
+            html = html.replace(/\b(\d+)\b/g, '<span style="color: #098658;">$1</span>');
+            
+            // 高亮布尔值和null
+            html = html.replace(/\b(true|false|null)\b/g, '<span style="color: #0000ff;">$1</span>');
+            
+            // 高亮键名
+            html = html.replace(/"([^"]+)":/g, '<span style="color: #0451a5;">"$1"</span>:');
+            
+            element.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
