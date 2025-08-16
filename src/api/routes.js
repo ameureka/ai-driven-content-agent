@@ -5,6 +5,8 @@
 
 import { marked } from 'marked';
 import { TemplateManager } from '../services/templateManager.js';
+import { ContentManager, ContentStatus, ContentType } from '../services/contentManager.js';
+import { IndexManager, IndexType } from '../services/indexManager.js';
 import { callDifyWorkflow, callDifyWorkflowStreaming } from './dify.js';
 import { callDifyArticleWorkflow } from './difyArticle.js';
 
@@ -161,6 +163,51 @@ function generateRandomId(length = 16) {
     return result;
 }
 
+// 输入清理函数 - 用于清理JSON字符串中的特殊字符
+function sanitizeJsonString(str) {
+    if (typeof str !== 'string') return str;
+    
+    // 转义特殊字符，防止JSON解析错误
+    return str
+        .replace(/\\/g, '\\\\')  // 反斜杠
+        .replace(/"/g, '\\"')     // 双引号
+        .replace(/\n/g, '\\n')    // 换行
+        .replace(/\r/g, '\\r')    // 回车
+        .replace(/\t/g, '\\t')    // 制表符
+        .replace(/\f/g, '\\f')    // 换页符
+        .replace(/\b/g, '\\b');   // 退格符
+}
+
+// 内容验证函数
+function validateContent(content) {
+    const errors = [];
+    
+    // 检查内容是否为空
+    if (!content || (typeof content === 'string' && content.trim().length === 0)) {
+        errors.push('内容不能为空');
+    }
+    
+    // 检查内容大小（25MB限制）
+    if (typeof content === 'string' && content.length > 25 * 1024 * 1024) {
+        errors.push('内容超过25MB限制');
+    }
+    
+    // 检查是否包含有效的Markdown标记（警告级别，不阻止提交）
+    if (typeof content === 'string' && 
+        !content.includes('#') && 
+        !content.includes('*') && 
+        !content.includes('_') &&
+        !content.includes('[') &&
+        !content.includes('`')) {
+        console.warn('内容可能不是有效的Markdown格式');
+    }
+    
+    return {
+        valid: errors.length === 0,
+        errors
+    };
+}
+
 // API密钥验证
 function validateApiKey(request, env) {
     const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '');
@@ -228,13 +275,34 @@ export class ApiRouter {
         this.addRoute('POST', `${API_BASE_PATH}/content/render`, this.renderContent.bind(this));
         
         // 5. 结果查看API
-        this.addRoute('GET', `${API_BASE_PATH}/content/:contentId`, this.getContent.bind(this));
+        // 注意：静态路由必须在动态路由之前注册
+        this.addRoute('GET', `${API_BASE_PATH}/content/workflow/:executionId`, this.getContentByWorkflow.bind(this));
+        this.addRoute('GET', `${API_BASE_PATH}/content/search`, this.searchContent.bind(this));
         this.addRoute('GET', `${API_BASE_PATH}/content/:contentId/html`, this.getContentHtml.bind(this));
         this.addRoute('GET', `${API_BASE_PATH}/content/:contentId/url`, this.getContentUrl.bind(this));
+        this.addRoute('GET', `${API_BASE_PATH}/content/:contentId`, this.getContent.bind(this));
         
-        // 6. 内容管理API
+        // 6. 内容管理API  
         this.addRoute('DELETE', `${API_BASE_PATH}/content/:contentId`, this.deleteContent.bind(this));
         this.addRoute('GET', `${API_BASE_PATH}/content`, this.listContent.bind(this));
+        this.addRoute('PUT', `${API_BASE_PATH}/content/:contentId`, this.updateContent.bind(this));
+        
+        // 7. 批量操作API
+        this.addRoute('POST', `${API_BASE_PATH}/content/bulk/delete`, this.bulkDeleteContent.bind(this));
+        this.addRoute('POST', `${API_BASE_PATH}/content/bulk/status`, this.bulkUpdateStatus.bind(this));
+        
+        // 8. 导入导出API
+        this.addRoute('GET', `${API_BASE_PATH}/content/:contentId/export`, this.exportContent.bind(this));
+        this.addRoute('POST', `${API_BASE_PATH}/content/import`, this.importContent.bind(this));
+        
+        // 9. 统计API
+        this.addRoute('GET', `${API_BASE_PATH}/content/statistics`, this.getContentStatistics.bind(this));
+        
+        // 10. 索引管理API
+        this.addRoute('GET', `${API_BASE_PATH}/index/search`, this.searchWithIndex.bind(this));
+        this.addRoute('GET', `${API_BASE_PATH}/index/statistics`, this.getIndexStatistics.bind(this));
+        this.addRoute('POST', `${API_BASE_PATH}/index/rebuild`, this.rebuildIndexes.bind(this));
+        this.addRoute('POST', `${API_BASE_PATH}/index/optimize`, this.optimizeIndexes.bind(this));
     }
 
     addRoute(method, path, handler) {
@@ -505,11 +573,70 @@ export class ApiRouter {
                 );
             }
 
+            // 生成执行ID
+            const executionId = generateRandomId();
+            
+            // 如果工作流返回了内容，自动创建content记录并建立关联
+            if (result && (result.answer || result.content || result.text)) {
+                const contentText = result.answer || result.content || result.text;
+                const contentId = generateRandomId();
+                const baseUrl = new URL(request.url).origin;
+                
+                // 确定模板
+                const template = requestData.template || 'article_wechat';
+                const title = requestData.title || requestData.inputs?.title || '工作流生成内容';
+                
+                // 构建metadata
+                const metadata = {
+                    source: 'workflow',
+                    workflowId,
+                    workflowName: workflow.name,
+                    executionId,
+                    workflowType: workflow.type,
+                    isCustom: workflow.isCustom || false,
+                    ...requestData.metadata
+                };
+                
+                // 渲染HTML
+                let renderedHtml;
+                try {
+                    renderedHtml = TemplateManager.render(template, title, contentText, metadata);
+                } catch (renderError) {
+                    console.error('工作流内容渲染失败:', renderError);
+                    renderedHtml = `<pre>${contentText}</pre>`;
+                }
+                
+                // 保存内容
+                const contentData = {
+                    contentId,
+                    content: contentText,
+                    template,
+                    title,
+                    metadata,
+                    html: renderedHtml,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    stats: {
+                        views: 0,
+                        renders: 1
+                    }
+                };
+                
+                // 存储内容和关联索引
+                await env.MARKDOWN_KV.put(contentId, JSON.stringify(contentData));
+                await env.MARKDOWN_KV.put(`workflow:${executionId}`, contentId);
+                
+                // 在结果中添加内容相关信息
+                result.contentId = contentId;
+                result.htmlUrl = `${baseUrl}/api/v1/content/${contentId}/html`;
+                result.viewUrl = `${baseUrl}/api/v1/content/${contentId}`;
+            }
+            
             return this.createSuccessResponse({
                 workflowId,
                 workflowName: workflow.name,
                 isCustom: workflow.isCustom || false,
-                executionId: generateRandomId(),
+                executionId,
                 result,
                 executedAt: new Date().toISOString()
             }, '工作流执行成功');
@@ -702,52 +829,94 @@ export class ApiRouter {
         }
 
         try {
-            const requestData = await request.json();
-            const { content, template = 'general', title = '', metadata = {} } = requestData;
-
-            // 验证输入
-            if (!content || !content.trim()) {
+            // 增强的JSON解析错误处理
+            let requestData;
+            try {
+                requestData = await request.json();
+            } catch (jsonError) {
+                console.error('JSON解析错误:', jsonError);
                 return this.createErrorResponse(
-                    '内容不能为空',
+                    '请求体JSON格式错误',
                     ERROR_CODES.INVALID_INPUT,
-                    '请提供有效的内容',
+                    jsonError.message,
                     400
                 );
             }
+            
+            // 确保数据类型正确并提供默认值
+            let { content, template = 'article_wechat', title = '', metadata = {} } = requestData;
+            
+            // 确保content是字符串
+            if (typeof content !== 'string') {
+                if (content === null || content === undefined) {
+                    content = '';
+                } else {
+                    content = String(content);
+                }
+            }
 
-            // 检查内容大小（25MB限制）
-            if (content.length > 25 * 1024 * 1024) {
+            // 使用验证函数验证内容
+            const validation = validateContent(content);
+            if (!validation.valid) {
                 return this.createErrorResponse(
-                    '内容过大',
-                    ERROR_CODES.CONTENT_TOO_LARGE,
-                    '内容大小不能超过25MB',
-                    413
+                    '内容验证失败',
+                    ERROR_CODES.INVALID_INPUT,
+                    validation.errors.join('; '),
+                    400
                 );
             }
 
             // 验证模板
             const templates = TemplateManager.getAvailableTemplates();
-            const templateNames = templates.map(t => t.name);
-            if (!templateNames.includes(template)) {
-                return this.createErrorResponse(
-                    '模板不存在',
-                    ERROR_CODES.TEMPLATE_NOT_FOUND,
-                    `模板 ${template} 未找到`,
-                    400
-                );
+            const templateIds = templates.map(t => t.id);
+            if (!templateIds.includes(template)) {
+                // 尝试按名称匹配（向后兼容）
+                const templateNames = templates.map(t => t.name);
+                if (!templateNames.includes(template)) {
+                    return this.createErrorResponse(
+                        '模板不存在',
+                        ERROR_CODES.TEMPLATE_NOT_FOUND,
+                        `模板 ${template} 未找到。可用模板: ${templateIds.join(', ')}`,
+                        400
+                    );
+                }
             }
 
             // 生成唯一ID
             const contentId = generateRandomId();
             
-            // 保存内容到KV存储
+            // 确保metadata有默认结构
+            const enrichedMetadata = {
+                source: 'api',
+                version: API_VERSION,
+                renderEngine: 'marked',
+                ...metadata  // 用户提供的metadata会覆盖默认值
+            };
+            
+            // 渲染HTML（预渲染以提高查询性能）
+            let renderedHtml;
+            try {
+                renderedHtml = TemplateManager.render(template, title || '未命名内容', content, enrichedMetadata);
+            } catch (renderError) {
+                console.error('HTML渲染错误:', renderError);
+                // 如果渲染失败，至少保存原始内容
+                renderedHtml = `<pre>${content}</pre>`;
+            }
+            
+            // 保存完整的数据结构到KV存储
             const contentData = {
+                contentId,
                 content,
                 template,
-                title,
-                metadata,
+                title: title || '',
+                metadata: enrichedMetadata,
+                html: renderedHtml,  // 保存渲染后的HTML
                 createdAt: new Date().toISOString(),
-                id: contentId
+                updatedAt: new Date().toISOString(),
+                stats: {
+                    views: 0,
+                    renders: 1
+                }
             };
             
             await env.MARKDOWN_KV.put(contentId, JSON.stringify(contentData));
@@ -757,13 +926,19 @@ export class ApiRouter {
             const viewUrl = `${baseUrl}/api/v1/content/${contentId}`;
             const htmlUrl = `${baseUrl}/api/v1/content/${contentId}/html`;
 
+            // 返回兼容前端期望的响应结构
             return this.createSuccessResponse({
                 contentId,
                 viewUrl,
                 htmlUrl,
                 template,
-                title,
-                createdAt: contentData.createdAt
+                title: title || '',
+                metadata: enrichedMetadata,
+                createdAt: contentData.createdAt,
+                // 添加嵌套的data字段以兼容前端
+                data: {
+                    htmlUrl  // 前端从 data.data.htmlUrl 获取
+                }
             }, '内容渲染成功', {}, 201);
 
         } catch (error) {
@@ -784,10 +959,11 @@ export class ApiRouter {
         try {
             const contentData = await env.MARKDOWN_KV.get(contentId);
             if (!contentData) {
+                // 改进的错误消息
                 return this.createErrorResponse(
                     '内容不存在',
                     ERROR_CODES.CONTENT_NOT_FOUND,
-                    `内容 ${contentId} 未找到`,
+                    `内容ID "${contentId}" 未找到。请先使用 GET /api/v1/content 获取有效的内容ID列表`,
                     404
                 );
             }
@@ -815,24 +991,62 @@ export class ApiRouter {
         try {
             const contentData = await env.MARKDOWN_KV.get(contentId);
             if (!contentData) {
+                // 改进的错误消息，提供更多指导
                 return this.createErrorResponse(
                     '内容不存在',
                     ERROR_CODES.CONTENT_NOT_FOUND,
-                    `内容 ${contentId} 未找到`,
+                    `内容ID "${contentId}" 未找到。请使用 GET /api/v1/content 获取有效的内容ID列表`,
                     404
                 );
             }
 
             const data = JSON.parse(contentData);
             const template = templateOverride || data.template;
-            const title = titleOverride || data.title;
+            const title = titleOverride || data.title || '未命名内容';
 
-            // 渲染HTML
-            const html = TemplateManager.render(template, title, data.content, data.metadata);
+            // 优先使用已存储的HTML，如果没有则重新渲染
+            let html;
+            if (data.html && !templateOverride && !titleOverride) {
+                // 如果存在预渲染的HTML且没有覆盖参数，直接使用
+                html = data.html;
+                console.log('使用缓存的HTML');
+            } else {
+                // 否则重新渲染
+                try {
+                    html = TemplateManager.render(template, title, data.content, data.metadata || {});
+                    console.log('重新渲染HTML');
+                } catch (renderError) {
+                    console.error('HTML渲染错误:', renderError);
+                    // 如果渲染失败，返回基本的HTML
+                    html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>body { font-family: sans-serif; padding: 20px; }</style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <pre>${data.content || '无内容'}</pre>
+</body>
+</html>`;
+                }
+            }
+            
+            // 更新访问统计
+            if (data.stats) {
+                data.stats.views = (data.stats.views || 0) + 1;
+                data.updatedAt = new Date().toISOString();
+                // 异步更新统计，不阻塞响应
+                env.MARKDOWN_KV.put(contentId, JSON.stringify(data)).catch(e => 
+                    console.error('更新统计失败:', e)
+                );
+            }
 
             return new Response(html, {
                 headers: {
                     'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'public, max-age=3600', // 添加缓存控制
                     ...corsHeaders
                 }
             });
@@ -910,6 +1124,14 @@ export class ApiRouter {
 
             await env.MARKDOWN_KV.delete(contentId);
             
+            // 如果存在工作流关联，也删除关联索引
+            const data = JSON.parse(contentData);
+            if (data.metadata?.executionId) {
+                await env.MARKDOWN_KV.delete(`workflow:${data.metadata.executionId}`).catch(e => 
+                    console.warn('删除工作流索引失败:', e)
+                );
+            }
+            
             return this.createSuccessResponse({
                 contentId,
                 deletedAt: new Date().toISOString()
@@ -986,6 +1208,171 @@ export class ApiRouter {
                 500
             );
         }
+    }
+
+    // 7. 增强查询API实现
+    async getContentByWorkflow(request, env, params) {
+        const { executionId } = params;
+        
+        try {
+            // 查找关联的contentId
+            const contentId = await env.MARKDOWN_KV.get(`workflow:${executionId}`);
+            if (!contentId) {
+                return this.createErrorResponse(
+                    '未找到相关内容',
+                    ERROR_CODES.CONTENT_NOT_FOUND,
+                    `工作流执行ID "${executionId}" 没有关联的内容`,
+                    404
+                );
+            }
+            
+            // 获取内容详情
+            const contentData = await env.MARKDOWN_KV.get(contentId);
+            if (!contentData) {
+                // 索引存在但内容已删除
+                await env.MARKDOWN_KV.delete(`workflow:${executionId}`);
+                return this.createErrorResponse(
+                    '内容已删除',
+                    ERROR_CODES.CONTENT_NOT_FOUND,
+                    `关联的内容已被删除`,
+                    404
+                );
+            }
+            
+            const data = JSON.parse(contentData);
+            return this.createSuccessResponse({
+                ...data,
+                workflowExecutionId: executionId
+            }, '获取工作流内容成功');
+            
+        } catch (error) {
+            console.error('获取工作流内容错误:', error);
+            return this.createErrorResponse(
+                '获取工作流内容失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+    
+    async searchContent(request, env, params) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const url = new URL(request.url);
+            const query = url.searchParams.get('q') || '';
+            const type = url.searchParams.get('type'); // workflow, manual, all
+            const template = url.searchParams.get('template');
+            const limit = parseInt(url.searchParams.get('limit')) || 20;
+            const cursor = url.searchParams.get('cursor');
+            
+            // 构建列表选项
+            const listOptions = { limit };
+            if (cursor) {
+                listOptions.cursor = cursor;
+            }
+            
+            // 获取所有内容键
+            const result = await env.MARKDOWN_KV.list(listOptions);
+            const contents = [];
+            
+            for (const key of result.keys) {
+                // 跳过索引键
+                if (key.name.includes(':')) continue;
+                
+                try {
+                    const contentData = await env.MARKDOWN_KV.get(key.name);
+                    if (contentData) {
+                        const data = JSON.parse(contentData);
+                        
+                        // 应用过滤条件
+                        let match = true;
+                        
+                        // 类型过滤
+                        if (type && type !== 'all') {
+                            const contentType = data.metadata?.source || 'manual';
+                            if (type !== contentType) match = false;
+                        }
+                        
+                        // 模板过滤
+                        if (template && data.template !== template) {
+                            match = false;
+                        }
+                        
+                        // 关键词搜索（在标题和内容中搜索）
+                        if (query && match) {
+                            const searchText = query.toLowerCase();
+                            const titleMatch = data.title?.toLowerCase().includes(searchText);
+                            const contentMatch = data.content?.toLowerCase().includes(searchText);
+                            match = titleMatch || contentMatch;
+                        }
+                        
+                        if (match) {
+                            contents.push({
+                                contentId: key.name,
+                                title: data.title,
+                                template: data.template,
+                                createdAt: data.createdAt,
+                                metadata: data.metadata,
+                                // 如果搜索关键词，添加内容片段
+                                snippet: query ? this.extractSnippet(data.content, query, 100) : undefined
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`解析内容失败: ${key.name}`, e);
+                }
+            }
+            
+            return this.createSuccessResponse({
+                query,
+                filters: { type, template },
+                contents,
+                pagination: {
+                    cursor: result.cursor,
+                    hasMore: !result.list_complete
+                }
+            }, '搜索内容成功');
+            
+        } catch (error) {
+            console.error('搜索内容错误:', error);
+            return this.createErrorResponse(
+                '搜索内容失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+    
+    // 辅助方法：提取包含关键词的内容片段
+    extractSnippet(content, keyword, maxLength = 100) {
+        if (!content || !keyword) return '';
+        
+        const lowerContent = content.toLowerCase();
+        const lowerKeyword = keyword.toLowerCase();
+        const index = lowerContent.indexOf(lowerKeyword);
+        
+        if (index === -1) return content.substring(0, maxLength) + '...';
+        
+        const start = Math.max(0, index - 30);
+        const end = Math.min(content.length, index + keyword.length + 70);
+        let snippet = content.substring(start, end);
+        
+        if (start > 0) snippet = '...' + snippet;
+        if (end < content.length) snippet = snippet + '...';
+        
+        return snippet;
     }
 
     // 新增：获取可用工作流列表
@@ -1144,6 +1531,471 @@ export class ApiRouter {
             );
         }
     }
+
+    // 内容管理系统新增方法
+
+    /**
+     * 更新内容
+     */
+    async updateContent(request, env, params) {
+        const { contentId } = params;
+        
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const updates = await request.json();
+            const contentManager = new ContentManager(env);
+            const updatedContent = await contentManager.updateContent(contentId, updates);
+            
+            return this.createSuccessResponse(updatedContent, '内容更新成功');
+        } catch (error) {
+            console.error('更新内容错误:', error);
+            return this.createErrorResponse(
+                '更新内容失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 批量删除内容
+     */
+    async bulkDeleteContent(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const { contentIds } = await request.json();
+            
+            if (!Array.isArray(contentIds) || contentIds.length === 0) {
+                return this.createErrorResponse(
+                    '无效的内容ID列表',
+                    ERROR_CODES.INVALID_INPUT,
+                    'contentIds必须是非空数组',
+                    400
+                );
+            }
+            
+            const contentManager = new ContentManager(env);
+            const results = await contentManager.bulkDeleteContent(contentIds);
+            
+            return this.createSuccessResponse(results, '批量删除完成');
+        } catch (error) {
+            console.error('批量删除错误:', error);
+            return this.createErrorResponse(
+                '批量删除失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 批量更新状态
+     */
+    async bulkUpdateStatus(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const { contentIds, status } = await request.json();
+            
+            if (!Array.isArray(contentIds) || contentIds.length === 0) {
+                return this.createErrorResponse(
+                    '无效的内容ID列表',
+                    ERROR_CODES.INVALID_INPUT,
+                    'contentIds必须是非空数组',
+                    400
+                );
+            }
+            
+            if (!Object.values(ContentStatus).includes(status)) {
+                return this.createErrorResponse(
+                    '无效的状态值',
+                    ERROR_CODES.INVALID_INPUT,
+                    `状态必须是: ${Object.values(ContentStatus).join(', ')}`,
+                    400
+                );
+            }
+            
+            const contentManager = new ContentManager(env);
+            const results = await contentManager.bulkUpdateStatus(contentIds, status);
+            
+            return this.createSuccessResponse(results, '批量更新状态完成');
+        } catch (error) {
+            console.error('批量更新状态错误:', error);
+            return this.createErrorResponse(
+                '批量更新状态失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 导出内容
+     */
+    async exportContent(request, env, params) {
+        const { contentId } = params;
+        const url = new URL(request.url);
+        const format = url.searchParams.get('format') || 'json';
+        
+        try {
+            const contentManager = new ContentManager(env);
+            const exportData = await contentManager.exportContent(contentId, format);
+            
+            // 根据格式返回不同的响应
+            if (format === 'json') {
+                return new Response(JSON.stringify(exportData.data, null, 2), {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Content-Disposition': `attachment; filename="${exportData.filename}"`,
+                        ...corsHeaders
+                    }
+                });
+            } else if (format === 'markdown') {
+                return new Response(exportData.data, {
+                    headers: {
+                        'Content-Type': 'text/markdown',
+                        'Content-Disposition': `attachment; filename="${exportData.filename}"`,
+                        ...corsHeaders
+                    }
+                });
+            } else if (format === 'html') {
+                return new Response(exportData.data, {
+                    headers: {
+                        'Content-Type': 'text/html',
+                        'Content-Disposition': `attachment; filename="${exportData.filename}"`,
+                        ...corsHeaders
+                    }
+                });
+            }
+            
+            return this.createErrorResponse(
+                '不支持的导出格式',
+                ERROR_CODES.INVALID_INPUT,
+                `格式 ${format} 不支持`,
+                400
+            );
+        } catch (error) {
+            console.error('导出内容错误:', error);
+            return this.createErrorResponse(
+                '导出内容失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 导入内容
+     */
+    async importContent(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const contentType = request.headers.get('Content-Type');
+            let data;
+            let format = 'json';
+            
+            if (contentType?.includes('application/json')) {
+                data = await request.json();
+                format = 'json';
+            } else if (contentType?.includes('text/markdown')) {
+                data = await request.text();
+                format = 'markdown';
+            } else {
+                // 尝试作为JSON解析
+                try {
+                    data = await request.json();
+                    format = 'json';
+                } catch {
+                    data = await request.text();
+                    format = 'markdown';
+                }
+            }
+            
+            const contentManager = new ContentManager(env);
+            const importedContent = await contentManager.importContent(data, format);
+            
+            return this.createSuccessResponse(importedContent, '内容导入成功', {}, 201);
+        } catch (error) {
+            console.error('导入内容错误:', error);
+            return this.createErrorResponse(
+                '导入内容失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 获取内容统计
+     */
+    async getContentStatistics(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const contentManager = new ContentManager(env);
+            const statistics = await contentManager.getStatistics();
+            
+            return this.createSuccessResponse(statistics, '获取统计信息成功');
+        } catch (error) {
+            console.error('获取统计信息错误:', error);
+            return this.createErrorResponse(
+                '获取统计信息失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    // 索引管理系统方法
+
+    /**
+     * 使用索引搜索内容
+     */
+    async searchWithIndex(request, env) {
+        const url = new URL(request.url);
+        const query = url.searchParams.get('q') || '';
+        const indexType = url.searchParams.get('type');
+        const limit = parseInt(url.searchParams.get('limit')) || 20;
+        
+        try {
+            const indexManager = new IndexManager(env);
+            let contentIds = [];
+            
+            if (indexType) {
+                // 使用特定索引类型搜索
+                const value = url.searchParams.get('value');
+                if (!value) {
+                    return this.createErrorResponse(
+                        '缺少索引值',
+                        ERROR_CODES.INVALID_INPUT,
+                        '使用索引搜索时必须提供value参数',
+                        400
+                    );
+                }
+                contentIds = await indexManager.queryByIndex(indexType, value, limit);
+            } else if (query) {
+                // 全文搜索
+                contentIds = await indexManager.fullTextSearch(query, limit);
+            } else {
+                // 多条件搜索
+                const conditions = [];
+                
+                // 构建搜索条件
+                const status = url.searchParams.get('status');
+                if (status) conditions.push({ type: 'status', value: status });
+                
+                const contentType = url.searchParams.get('contentType');
+                if (contentType) conditions.push({ type: 'type', value: contentType });
+                
+                const template = url.searchParams.get('template');
+                if (template) conditions.push({ type: 'template', value: template });
+                
+                const author = url.searchParams.get('author');
+                if (author) conditions.push({ type: 'author', value: author });
+                
+                const tag = url.searchParams.get('tag');
+                if (tag) conditions.push({ type: 'tag', value: tag.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, '') });
+                
+                if (conditions.length > 0) {
+                    contentIds = await indexManager.queryByMultipleIndexes(conditions, limit);
+                } else {
+                    return this.createErrorResponse(
+                        '缺少搜索条件',
+                        ERROR_CODES.INVALID_INPUT,
+                        '请提供至少一个搜索条件',
+                        400
+                    );
+                }
+            }
+            
+            // 获取内容详情
+            const contents = [];
+            for (const contentId of contentIds) {
+                try {
+                    const data = await env.MARKDOWN_KV.get(contentId);
+                    if (data) {
+                        const content = JSON.parse(data);
+                        contents.push({
+                            contentId: content.contentId,
+                            title: content.title,
+                            template: content.template,
+                            status: content.status,
+                            type: content.type,
+                            tags: content.tags,
+                            createdAt: content.createdAt,
+                            snippet: query ? this.extractSnippet(content.content, query) : undefined
+                        });
+                    }
+                } catch (e) {
+                    console.warn(`获取内容失败: ${contentId}`, e);
+                }
+            }
+            
+            return this.createSuccessResponse({
+                query,
+                conditions: { indexType, ...Object.fromEntries(url.searchParams) },
+                results: contents,
+                total: contents.length
+            }, '搜索完成');
+            
+        } catch (error) {
+            console.error('索引搜索错误:', error);
+            return this.createErrorResponse(
+                '搜索失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 获取索引统计信息
+     */
+    async getIndexStatistics(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const indexManager = new IndexManager(env);
+            const statistics = await indexManager.getIndexStatistics();
+            
+            return this.createSuccessResponse(statistics, '获取索引统计成功');
+        } catch (error) {
+            console.error('获取索引统计错误:', error);
+            return this.createErrorResponse(
+                '获取索引统计失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 重建索引
+     */
+    async rebuildIndexes(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const indexManager = new IndexManager(env);
+            const result = await indexManager.rebuildAllIndexes();
+            
+            return this.createSuccessResponse(result, '索引重建完成');
+        } catch (error) {
+            console.error('重建索引错误:', error);
+            return this.createErrorResponse(
+                '重建索引失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
+    /**
+     * 优化索引
+     */
+    async optimizeIndexes(request, env) {
+        // 验证API密钥
+        const authResult = validateApiKey(request, env);
+        if (!authResult.valid) {
+            return this.createErrorResponse(
+                authResult.message,
+                authResult.error,
+                null,
+                authResult.error === ERROR_CODES.MISSING_API_KEY ? 401 : 403
+            );
+        }
+        
+        try {
+            const indexManager = new IndexManager(env);
+            const result = await indexManager.optimizeIndexes();
+            
+            return this.createSuccessResponse(result, '索引优化完成');
+        } catch (error) {
+            console.error('优化索引错误:', error);
+            return this.createErrorResponse(
+                '优化索引失败',
+                ERROR_CODES.INTERNAL_ERROR,
+                error.message,
+                500
+            );
+        }
+    }
+
 }
 
 export { ERROR_CODES, API_VERSION };

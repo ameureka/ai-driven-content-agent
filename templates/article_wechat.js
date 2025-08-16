@@ -1,13 +1,13 @@
 /**
- * 微信公众号专用 - 医疗文章模板
+ * 微信公众号专用 - 通用文章模板
  * 基于ai-medical-article-v5.html设计风格重构
- * 专门针对微信公众号医疗内容阅读体验优化
+ * 专门针对微信公众号内容阅读体验优化
  * 遵循微信公众号CSS约束条件，使用行内样式
  */
 export default {
   name: 'article_wechat',
-  displayName: '微信医疗文章模板',
-  description: '专为微信公众号设计的医疗文章模板，完全兼容微信编辑器约束',
+  displayName: '微信文章通用模板',
+  description: '专为微信公众号设计的通用文章模板，完全兼容微信编辑器约束',
   
   // 微信公众号不支持外部CSS和<style>标签，所有样式都通过行内样式实现
   styles: '',

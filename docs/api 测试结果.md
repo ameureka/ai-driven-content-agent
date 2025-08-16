@@ -309,5 +309,9 @@ GET http://localhost:8787/api/v1/content/{id}
 
  不符合预期
  
+DELETE http://localhost:8787/api/v1/content/{id}
+
+不符合预期
+
 
 

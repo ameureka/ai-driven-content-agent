@@ -22,14 +22,14 @@ binding = "ASSETS"
 bucket_name = "ai-driven-content-agent-assets"
 preview_bucket_name = "ai-driven-content-agent-assets-dev"
 
+# Cloudflare 账号 ID - 正确的部署账号 yalinwang2
+account_id = "81bfd636a0639bbac8d0e47dcb81be73"
+
 # --- 本地开发静态资源 ---
 # 为本地开发提供静态文件服务
 [assets]
 directory = "./public"
 binding = "LOCAL_ASSETS"
-
-# Cloudflare 账号 ID - 正确的部署账号 yalinwang2
-account_id = "81bfd636a0639bbac8d0e47dcb81be73"
 
 # --- 环境变量配置 ---
 # 对于敏感信息，我们使用 Cloudflare Workers Secrets

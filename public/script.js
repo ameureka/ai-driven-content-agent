@@ -206,8 +206,18 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.removeItem('apiKey');
         }
 
-        // 保存生成的URL并显示结果 - 使用新API响应格式
-        generatedUrl = data.data.htmlUrl;
+        // 保存生成的URL并显示结果 - 兼容多种响应格式
+        // 尝试从不同的路径获取htmlUrl
+        generatedUrl = data.data?.htmlUrl || 
+                      data.htmlUrl || 
+                      data.data?.data?.htmlUrl ||
+                      null;
+        
+        if (!generatedUrl) {
+          console.error('响应数据结构:', data);
+          throw new Error('无法从响应中获取生成的URL');
+        }
+        
         resultUrl.textContent = generatedUrl;
         resultUrl.href = generatedUrl;
         resultPanel.classList.remove('hidden');

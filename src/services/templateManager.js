@@ -28,10 +28,12 @@ export class TemplateManager {
    * @returns {Array} 模板信息数组
    */
   static getAvailableTemplates() {
-    return Object.values(templates).map(template => ({
+    return Object.entries(templates).map(([id, template]) => ({
+      id: id,
       name: template.name,
       displayName: template.displayName,
-      description: template.description
+      description: template.description,
+      type: 'html'
     }));
   }
 
