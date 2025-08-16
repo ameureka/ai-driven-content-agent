@@ -5,6 +5,8 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/ameureka/ai-driven-content-agent/releases)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
 [![Dify](https://img.shields.io/badge/Powered%20by-Dify%20AI-blue)](https://dify.ai/)
+[![Production](https://img.shields.io/badge/Production-Live-green.svg)](https://ai-driven-content-agent.yalinwang2.workers.dev)
+[![Documentation](https://img.shields.io/badge/Docs-Complete-brightgreen.svg)](docs/文档索引.md)
 
 一个基于Cloudflare Workers的智能内容生成和渲染系统，集成Dify AI工作流，支持多种微信公众号模板和自定义工作流管理。
 
@@ -248,11 +250,37 @@ curl https://ai-driven-content-agent.yalinwang2.workers.dev/api/v1/status
 
 ## 📚 详细文档
 
-- 📋 [API完整文档](docs/rulers/API_Complete_Documentation.md)
+> 💡 **文档导航**: 项目采用标准化文档结构，所有文档位于 [`docs/汇总/新文档结构/`](docs/汇总/新文档结构/) 目录下，按功能分类组织。
+
+### 🗂️ 文档结构
+- 📂 **01_项目概述** - 项目介绍和架构概览
+- 📂 **02_技术文档** - API文档、架构设计、开发指南
+- 📂 **03_开发指南** - 环境搭建、代码规范、开发流程
+- 📂 **04_部署运维** - 部署指南、监控配置
+- 📂 **05_测试文档** - 测试策略、用例管理、自动化测试
+- 📂 **06_流程图表** - 系统架构图、工作流程图
+- 📂 **07_升级日志** - 版本更新、功能升级记录
+- 📂 **08_参考资料** - 技术参考、最佳实践
+
+### 核心文档
+- 📋 [API完整文档](docs/汇总/新文档结构/02_技术文档/API接口文档_汇总版.md)
 - 🏗️ [系统架构设计](docs/汇总/新文档结构/01_项目概述/项目架构概览.md)
-- 🚀 [部署运维指南](docs/部署与运维完整指南.md)
-- 🎨 [模板开发指南](docs/rulers/temples%20模板设计原则.md)
+- 🚀 [部署运维指南](docs/汇总/新文档结构/04_部署运维/部署指南.md)
+- 🎨 [模板开发指南](docs/汇总/新文档结构/02_技术文档/模板系统文档.md)
 - 🔧 [自定义工作流实施报告](docs/rulers/自定义工作流系统实施报告.md)
+
+### 开发文档
+- 🛠️ [开发环境搭建](docs/汇总/新文档结构/03_开发指南/开发环境搭建.md)
+- 📝 [代码规范](docs/汇总/新文档结构/03_开发指南/代码规范.md)
+- 🧪 [测试策略](docs/汇总/新文档结构/05_测试文档/测试策略与规范.md)
+
+### 运维文档
+- 📊 [监控配置](docs/汇总/新文档结构/04_部署运维/监控配置.md)
+- 🔍 [故障排除](docs/故障排障设计.md)
+
+### 参考资料
+- 📖 [工作流分析报告](docs/汇总/新文档结构/06_流程图表/工作流分析报告.md)
+- 🔄 [升级日志](docs/汇总/新文档结构/07_升级日志/自定义工作流实现完整版.md)
 
 ## 🤝 贡献指南
 
@@ -291,6 +319,7 @@ curl https://ai-driven-content-agent.yalinwang2.workers.dev/api/v1/status
 - 🐛 [提交Issue](https://github.com/ameureka/ai-driven-content-agent/issues)
 - 💬 [参与讨论](https://github.com/ameureka/ai-driven-content-agent/discussions)  
 - 📖 查看[故障排除指南](docs/故障排障设计.md)
+- 📚 浏览[完整文档索引](docs/文档索引.md)
 - 📧 联系开发团队
 
 ## 🗺️ 开发路线图
