@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章生成API测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            background: #f5f5f5;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 文章生成API测试工具</h1>
+        
+        <div class="test-section">
+            <h2>测试配置</h2>
+            <div class="input-group">
+                <label>API模式：</label>
+                <select id="apiMode">
+                    <option value="sync">同步模式（可能超时）</option>
+                    <option value="async" selected>异步模式（推荐）</option>
+                    <option value="stream">流式模式（SSE）</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>文章标题：</label>
+                <input type="text" id="title" value="AI技术在医疗领域的革命性应用">
+            </div>
+            <div class="input-group">
+                <label>写作风格：</label>
+                <select id="style">
+                    <option value="professional">专业</option>
+                    <option value="casual">随意</option>
+                    <option value="academic">学术</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>上下文内容：</label>
+                <textarea id="context">探讨人工智能如何改变医疗诊断、药物研发、个性化治疗方案、远程医疗服务以及医疗数据分析等领域，重点分析实际应用案例和未来发展前景。</textarea>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button onclick="testSync()">测试同步API</button>
+            <button onclick="testAsync()">测试异步API</button>
+            <button onclick="testStream()">测试流式API</button>
+            <button onclick="clearStatus()">清除结果</button>
+        </div>
+
+        <div class="progress-bar" id="progressBar" style="display: none;">
+            <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8787/api/v1';
+        const API_KEY = 'aiwenchuang';
+
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIcon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            status.innerHTML += `[${timestamp}] ${typeIcon} ${message}\n`;
+            status.scrollTop = status.scrollHeight;
+        }
+
+        function clearStatus() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('progressBar').style.display = 'none';
+        }
+
+        function updateProgress(progress) {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+            progressFill.style.width = progress + '%';
+            progressFill.textContent = progress + '%';
+        }
+
+        function getInputs() {
+            return {
+                title: document.getElementById('title').value,
+                style: document.getElementById('style').value,
+                context: document.getElementById('context').value
+            };
+        }
+
+        // 测试同步API
+        async function testSync() {
+            clearStatus();
+            log('开始测试同步API...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/workflows/dify-article/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ inputs: getInputs() })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log('同步API调用成功！', 'success');
+                    log('响应: ' + JSON.stringify(data, null, 2));
+                } else {
+                    log('同步API调用失败: ' + response.status, 'error');
+                }
+            } catch (error) {
+                log('同步API错误: ' + error.message, 'error');
+            }
+        }
+
+        // 测试异步API
+        async function testAsync() {
+            clearStatus();
+            log('开始测试异步API...');
+            
+            try {
+                // Step 1: 创建任务
+                log('Step 1: 创建异步任务');
+                const createResponse = await fetch(`${API_BASE}/workflows/dify-article/execute-async`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ inputs: getInputs() })
+                });
+
+                if (!createResponse.ok) {
+                    throw new Error('创建任务失败: ' + createResponse.status);
+                }
+
+                const createData = await createResponse.json();
+                const taskId = createData.data.taskId;
+                log(`任务创建成功! Task ID: ${taskId}`, 'success');
+
+                // Step 2: 轮询状态
+                log('Step 2: 开始轮询任务状态...');
+                let attempts = 0;
+                const maxAttempts = 60;
+                
+                const pollInterval = setInterval(async () => {
+                    attempts++;
+                    
+                    const statusResponse = await fetch(`${API_BASE}/tasks/${taskId}/status`, {
+                        headers: { 'Authorization': `Bearer ${API_KEY}` }
+                    });
+                    
+                    if (statusResponse.ok) {
+                        const statusData = await statusResponse.json();
+                        const status = statusData.data.status;
+                        const progress = statusData.data.progress || 0;
+                        
+                        updateProgress(progress);
+                        log(`轮询 ${attempts}/${maxAttempts}: 状态=${status}, 进度=${progress}%`);
+                        
+                        if (status === 'completed') {
+                            clearInterval(pollInterval);
+                            log('任务完成！获取结果...', 'success');
+                            
+                            // Step 3: 获取结果
+                            const resultResponse = await fetch(`${API_BASE}/tasks/${taskId}/result`, {
+                                headers: { 'Authorization': `Bearer ${API_KEY}` }
+                            });
+                            
+                            if (resultResponse.ok) {
+                                const resultData = await resultResponse.json();
+                                log('成功获取结果！', 'success');
+                                log('结果预览: ' + JSON.stringify(resultData.data, null, 2).substring(0, 1000) + '...');
+                            }
+                        } else if (status === 'failed' || attempts >= maxAttempts) {
+                            clearInterval(pollInterval);
+                            log(status === 'failed' ? '任务失败！' : '轮询超时！', 'error');
+                        }
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                log('异步API错误: ' + error.message, 'error');
+            }
+        }
+
+        // 测试流式API
+        async function testStream() {
+            clearStatus();
+            log('开始测试流式API (SSE)...');
+            
+            try {
+                const eventSource = new EventSource(
+                    `${API_BASE}/workflows/dify-article/execute?stream=true&enhanced=true`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${API_KEY}`
+                        }
+                    }
+                );
+
+                eventSource.onopen = () => {
+                    log('SSE连接已建立', 'success');
+                };
+
+                eventSource.onmessage = (event) => {
+                    log('SSE消息: ' + event.data);
+                };
+
+                eventSource.addEventListener('progress', (event) => {
+                    const data = JSON.parse(event.data);
+                    updateProgress(data.percentage || 0);
+                });
+
+                eventSource.addEventListener('complete', (event) => {
+                    log('流式处理完成！', 'success');
+                    log('结果: ' + event.data);
+                    eventSource.close();
+                });
+
+                eventSource.onerror = (error) => {
+                    log('SSE错误: ' + error, 'error');
+                    eventSource.close();
+                };
+
+                // 发送请求数据
+                fetch(`${API_BASE}/workflows/dify-article/execute?stream=true`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ inputs: getInputs() })
+                });
+                
+            } catch (error) {
+                log('流式API错误: ' + error.message, 'error');
+            }
+        }
+
+        // 页面加载完成后的初始化
+        window.onload = () => {
+            log('测试工具已就绪！请选择测试模式并点击相应按钮。');
+        };
+    </script>
+</body>
+</html>
