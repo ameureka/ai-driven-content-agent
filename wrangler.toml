@@ -1,0 +1,48 @@
+# Worker 的唯一名称，部署后会成为 URL 的一部分
+name = "ai-driven-content-agent"
+# Worker 入口文件
+main = "src/index.js"
+# 兼容性日期，更新到 2024-10-30
+compatibility_date = "2024-10-30"
+# 添加 Node.js 兼容性标志
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare 账号 ID - 正确的部署账号 yalinwang2
+account_id = "81bfd636a0639bbac8d0e47dcb81be73"
+
+# --- KV 命名空间绑定 ---
+# 这会告诉 wrangler 创建或链接一个名为 'MARKDOWN_KV' 的 KV 命名空间
+# 在你的 Worker 代码中可以通过 `env.MARKDOWN_KV` 来访问它。
+[[kv_namespaces]]
+binding = "MARKDOWN_KV"
+id = "354c4fd9feef47aeb5dd6f1885c164b3"
+preview_id = "e084f2191ffb4ac481f7113f5496fbd9"
+
+# --- R2 存储桶绑定 ---
+# 绑定R2存储桶，用于存储静态资源
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "ai-driven-content-agent-assets"
+preview_bucket_name = "ai-driven-content-agent-assets-dev"
+
+# --- 本地开发静态资源 ---
+# 为本地开发提供静态文件服务
+[assets]
+directory = "./public"
+binding = "LOCAL_ASSETS"
+
+# --- 环境变量配置 ---
+# 对于敏感信息，我们使用 Cloudflare Workers Secrets
+# 已通过 `wrangler secret put API_KEY` 设置了 API_KEY
+# 开发环境可以使用 .dev.vars 文件（不包含在版本控制中）
+
+# --- Secrets 绑定（重要！） ---
+# 声明需要使用的环境变量，这样 Worker 才能访问
+# 实际值通过 wrangler secret put 设置
+[vars]
+# 非敏感的默认配置
+ENVIRONMENT = "production"
+DIFY_BASE_URL = "https://api.dify.ai"
+
+# 注意：敏感信息（API_KEY, DIFY_API_KEY等）不应在这里配置
+# 而是通过 wrangler secret put 命令设置

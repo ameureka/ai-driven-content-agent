@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>前端API测试</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 15px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        #output { background: #f5f5f5; padding: 15px; margin-top: 20px; white-space: pre-wrap; font-family: monospace; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <h1>前端API测试工具</h1>
+    
+    <div class="test-section">
+        <h2>测试1: 同步调用（前端使用的方式）</h2>
+        <button onclick="testSyncAPI()">测试 execute 端点（流式）</button>
+        <button onclick="testSyncAPIBlocking()">测试 execute 端点（阻塞）</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试2: 异步调用（后台任务方式）</h2>
+        <button onclick="testAsyncAPI()">测试 execute-async 端点</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>测试3: 对比测试</h2>
+        <button onclick="runComparisonTest()">同时运行两种方式对比</button>
+    </div>
+    
+    <div id="output"></div>
+    
+    <script>
+        const API_KEY = 'aiwenchuang';
+        const BASE_URL = `http://localhost:${location.port}/api/v1`;
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+        
+        // 测试同步API（流式）
+        async function testSyncAPI() {
+            clearOutput();
+            log('开始测试 execute 端点（流式模式）...');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/workflows/dify-article/execute?stream=true`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: '前端测试文章',
+                        style: 'professional',
+                        context: '这是通过前端同步调用生成的'
+                    })
+                });
+                
+                log(`响应状态: ${response.status}`);
+                
+                if (response.headers.get('content-type')?.includes('event-stream')) {
+                    log('收到流式响应，开始读取...');
+                    
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let eventCount = 0;
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        
+                        let boundary;
+                        while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+                            const event = buffer.substring(0, boundary);
+                            buffer = buffer.substring(boundary + 2);
+                            
+                            if (event.startsWith('data: ')) {
+                                eventCount++;
+                                const data = event.substring(6);
+                                if (data === '[DONE]') {
+                                    log('流式响应完成', 'success');
+                                    return;
+                                }
+                                
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.event) {
+                                        log(`事件 #${eventCount}: ${parsed.event}`);
+                                        if (parsed.event === 'workflow_finished') {
+                                            log('工作流完成!', 'success');
+                                            if (parsed.data?.outputs) {
+                                                log(`输出字段: ${Object.keys(parsed.data.outputs).join(', ')}`);
+                                            }
+                                        }
+                                    }
+                                } catch (e) {
+                                    // 忽略解析错误
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const result = await response.json();
+                    log(`收到JSON响应: ${JSON.stringify(result, null, 2)}`);
+                }
+            } catch (error) {
+                log(`错误: ${error.message}`, 'error');
+            }
+        }
+        
+        // 测试同步API（阻塞）
+        async function testSyncAPIBlocking() {
+            clearOutput();
+            log('开始测试 execute 端点（阻塞模式）...');
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${BASE_URL}/workflows/dify-article/execute`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: '前端测试文章（阻塞）',
+                        style: 'professional',
+                        context: '这是通过前端阻塞调用生成的'
+                    })
+                });
+                
+                const elapsed = Date.now() - startTime;
+                log(`响应状态: ${response.status} (耗时: ${elapsed}ms)`);
+                
+                const result = await response.json();
+                if (result.success) {
+                    log('调用成功!', 'success');
+                    log(`结果: ${JSON.stringify(result.data).substring(0, 500)}...`);
+                } else {
+                    log(`调用失败: ${result.error?.message || result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`错误: ${error.message}`, 'error');
+            }
+        }
+        
+        // 测试异步API
+        async function testAsyncAPI() {
+            clearOutput();
+            log('开始测试 execute-async 端点...');
+            
+            try {
+                // 创建任务
+                const createResponse = await fetch(`${BASE_URL}/workflows/dify-article/execute-async`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inputs: {
+                            title: '异步测试文章',
+                            style: 'professional',
+                            context: '这是通过异步API生成的'
+                        }
+                    })
+                });
+                
+                const createResult = await createResponse.json();
+                if (!createResult.success) {
+                    log(`创建任务失败: ${createResult.error?.message}`, 'error');
+                    return;
+                }
+                
+                const taskId = createResult.data.taskId;
+                log(`任务创建成功: ${taskId}`, 'success');
+                
+                // 轮询状态
+                let attempts = 0;
+                const maxAttempts = 30;
+                
+                const pollInterval = setInterval(async () => {
+                    attempts++;
+                    
+                    const statusResponse = await fetch(`${BASE_URL}/tasks/${taskId}/status`, {
+                        headers: { 'Authorization': `Bearer ${API_KEY}` }
+                    });
+                    
+                    const statusResult = await statusResponse.json();
+                    if (statusResult.success) {
+                        const { status, progress } = statusResult.data;
+                        log(`轮询 #${attempts}: 状态=${status}, 进度=${progress}%`);
+                        
+                        if (status === 'completed' || status === 'failed') {
+                            clearInterval(pollInterval);
+                            if (status === 'completed') {
+                                log('任务完成!', 'success');
+                                
+                                // 获取结果
+                                const resultResponse = await fetch(`${BASE_URL}/tasks/${taskId}/result`, {
+                                    headers: { 'Authorization': `Bearer ${API_KEY}` }
+                                });
+                                const resultData = await resultResponse.json();
+                                if (resultData.success) {
+                                    log(`结果: ${JSON.stringify(resultData.data).substring(0, 500)}...`);
+                                }
+                            } else {
+                                log('任务失败', 'error');
+                            }
+                        }
+                    }
+                    
+                    if (attempts >= maxAttempts) {
+                        clearInterval(pollInterval);
+                        log('轮询超时', 'error');
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                log(`错误: ${error.message}`, 'error');
+            }
+        }
+        
+        // 对比测试
+        async function runComparisonTest() {
+            clearOutput();
+            log('开始对比测试...');
+            log('====================');
+            
+            // 同时启动两个测试
+            const syncPromise = testSyncAPI();
+            const asyncPromise = testAsyncAPI();
+            
+            await Promise.all([syncPromise, asyncPromise]);
+            
+            log('====================');
+            log('对比测试完成', 'success');
+        }
+    </script>
+</body>
+</html>

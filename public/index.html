@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI智能内容代理 - 基于Dify工作流的智能内容生成系统</title>
+  <meta name="description" content="一键将Markdown转换为精美的文章，支持多种排版模板，快速生成分享链接。">
+  <link rel="stylesheet" href="https://unpkg.com/ionicons@4.5.10-0/dist/css/ionicons.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+</head>
+<body>
+  <!-- 头部 -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="logo">
+        <i class="icon ion-md-flash"></i>
+        <h1>AI 智能创作平台</h1>
+      </div>
+      <div class="header-actions">
+        <a href="https://github.com/ameureka/wecom_text_agent" target="_blank" class="github-link" title="GitHub">
+          <i class="icon ion-logo-github"></i>
+          <span>GitHub</span>
+        </a>
+        <button id="theme-toggle" class="icon-button" title="切换主题">
+          <i class="icon ion-md-moon"></i>
+        </button>
+        <a href="#" id="about-link" class="icon-button" title="关于">
+          <i class="icon ion-md-information-circle-outline"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero区域 -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>Flexible AI content creation</h1>
+        <h2>for modern teams</h2>
+        <p>Transform your content workflow with AI-powered tools. Create, edit, and format content with the precision of AI or the simplicity of drag-n-drop templates.</p>
+        <div class="hero-buttons">
+          <button class="hero-btn primary">立即使用</button>
+          <button class="hero-btn secondary">了解更多</button>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="lightning-icon">⚡</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features 区域 -->
+  <section class="features-section">
+    <div class="features-container">
+      <h2 class="features-title">Key Features</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background-color: rgba(255, 156, 65, 0.1); color: #ff9c41;">
+            <i class="icon ion-md-paper"></i>
+          </div>
+          <h3>Multi-template Publishing</h3>
+          <p>Choose from a variety of professional templates to make your content stand out.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon" style="background-color: rgba(54, 112, 254, 0.1); color: #3670fe;">
+            <i class="icon ion-md-code"></i>
+          </div>
+          <h3>Markdown Support</h3>
+          <p>Write in simple Markdown and convert to beautifully formatted content.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon" style="background-color: rgba(54, 179, 126, 0.1); color: #36b37e;">
+            <i class="icon ion-md-share"></i>
+          </div>
+          <h3>Instant Sharing</h3>
+          <p>Generate shareable links instantly for seamless distribution.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon" style="background-color: rgba(151, 71, 255, 0.1); color: #9747ff;">
+            <i class="icon ion-md-construct"></i>
+          </div>
+          <h3>Dify Workflow Integration</h3>
+          <p>Leverage advanced AI workflows for content improvement and generation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 主要内容 -->
+  <main class="app-container">
+    <!-- 控制面板 -->
+    <section class="control-panel">
+      <!-- API密钥输入 -->
+      <div class="key-section">
+        <div class="input-group">
+          <label for="api-key">API密钥</label>
+          <div class="password-input-container">
+            <input type="password" id="api-key" placeholder="test-api-key-for-demo">
+            <button id="toggle-password" class="icon-button" title="显示/隐藏密码">
+              <i class="icon ion-md-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="remember-key" name="remember-key">
+          <label for="remember-key">记住密钥</label>
+        </div>
+      </div>
+
+      <!-- 工作流选择器 -->
+      <div class="workflow-selector-section">
+        <h3 class="animated-title">选择工作流</h3>
+        <div class="workflow-grid" id="workflow-grid">
+          <!-- 默认工作流 -->
+          <div class="workflow-card active" data-workflow="dify-general" data-type="url">
+            <div class="workflow-icon" style="background-color: rgba(54, 112, 254, 0.1); color: #3670fe;">
+              <i class="icon ion-md-cloud-download"></i>
+            </div>
+            <div class="workflow-info">
+              <h4>URL内容生成</h4>
+              <p>从网页链接生成内容</p>
+              <span class="workflow-type">URL处理</span>
+            </div>
+          </div>
+          
+          <div class="workflow-card" data-workflow="dify-article" data-type="text">
+            <div class="workflow-icon" style="background-color: rgba(54, 179, 126, 0.1); color: #36b37e;">
+              <i class="icon ion-md-create"></i>
+            </div>
+            <div class="workflow-info">
+              <h4>AI文章生成</h4>
+              <p>基于关键词生成文章</p>
+              <span class="workflow-type">文本生成</span>
+            </div>
+          </div>
+          
+          <!-- 自定义工作流将在这里动态添加 -->
+        </div>
+        
+        <div class="workflow-actions">
+          <button id="add-custom-workflow-btn" class="secondary-button">
+            <i class="icon ion-md-add"></i>添加自定义工作流
+          </button>
+        </div>
+      </div>
+
+      <!-- URL输入和生成按钮 -->
+      <div class="url-section">
+        <div class="input-group">
+          <label for="target-url" class="animated-title">AI文章改写</label>
+          <div class="url-input-container">
+            <input type="text" id="target-url" placeholder="https://example.com/article">
+            <button id="generate-from-url" class="primary-button" title="从URL生成">
+              <i class="icon ion-md-cloud-download"></i>
+              从URL生成
+            </button>
+          </div>
+          <!-- 新增：为URL工作流添加状态指示器 -->
+          <div id="url-workflow-status" class="workflow-status hidden">
+            <span class="status-dot"></span>
+            <span class="status-text">准备中...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文章生成功能 -->
+      <div class="workflow-section">
+        <h3 class="animated-title">AI文章生成</h3>
+        <div class="input-group">
+          <label for="workflow-title">关键词</label>
+          <input type="text" id="workflow-title" placeholder="例如: AI PPT">
+        </div>
+        <div class="input-row">
+          <div class="input-group">
+            <label for="workflow-style">风格</label>
+            <input type="text" id="workflow-style" placeholder="例如: 简约, 现代 (可选)">
+          </div>
+          <div class="input-group">
+            <label for="workflow-context">上下文</label>
+            <textarea id="workflow-context" placeholder="例如: 如何更好设计ppt 方便教学" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="workflow-actions">
+          <button id="generate-article-btn" class="primary-button">
+            <i class="icon ion-md-create"></i>AI生成
+          </button>
+          <div id="workflow-status" class="workflow-status hidden">
+            <span class="status-dot"></span>
+            <span class="status-text">准备中...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 标题输入 -->
+      <div class="input-group">
+        <label for="page-title">文章标题</label>
+        <input type="text" id="page-title" placeholder="输入文章标题 (可选)">
+      </div>
+
+      <!-- 模板选择 -->
+      <div class="template-section">
+        <h3 class="animated-title">选择排版模板</h3>
+        <div class="template-grid">
+          <div class="template-card" data-template="article_wechat">
+            <i class="icon ion-md-paper"></i>
+            <h4>通用文章</h4>
+            <p>微信公众号通用文章模板</p>
+          </div>
+          <div class="template-card" data-template="tech_analysis_wechat">
+            <i class="icon ion-md-code-working"></i>
+            <h4>技术解读</h4>
+            <p>深度技术分析和解读</p>
+          </div>
+          <div class="template-card" data-template="news_modern_wechat">
+            <i class="icon ion-md-megaphone"></i>
+            <h4>新闻广播</h4>
+            <p>现代化新闻资讯模板</p>
+          </div>
+          <div class="template-card" data-template="github_project_wechat">
+            <i class="icon ion-md-logo-github"></i>
+            <h4>GitHub项目</h4>
+            <p>开源项目介绍和展示</p>
+          </div>
+          <div class="template-card" data-template="ai_benchmark_wechat">
+            <i class="icon ion-md-analytics"></i>
+            <h4>AI基准测试</h4>
+            <p>AI模型评测和对比</p>
+          </div>
+          <div class="template-card" data-template="professional_analysis_wechat">
+            <i class="icon ion-md-document"></i>
+            <h4>专业分析</h4>
+            <p>深度研究报告和专业文档</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主要按钮 -->
+      <div class="action-buttons">
+        <button id="generate-btn" class="primary-button">
+          <i class="icon ion-md-send"></i>生成排版
+        </button>
+        <button id="preview-btn" class="secondary-button" disabled>
+          <i class="icon ion-md-eye"></i>预览
+        </button>
+        <button id="copy-link-btn" class="secondary-button" disabled>
+          <i class="icon ion-md-link"></i>复制链接
+        </button>
+        <button id="reset-btn" class="secondary-button">
+          <i class="icon ion-md-refresh"></i>重置
+        </button>
+      </div>
+    </section>
+
+    <!-- 编辑器面板 -->
+    <section class="editor-panel">
+      <div class="editor-header">
+        <h2>Markdown编辑器</h2>
+        <div class="editor-actions">
+          <button id="paste-btn" class="icon-button" title="从剪贴板粘贴">
+            <i class="icon ion-md-clipboard"></i>
+          </button>
+          <button id="example-btn" class="icon-button" title="插入示例">
+            <i class="icon ion-md-create"></i>
+          </button>
+          <button id="clear-editor-btn" class="icon-button" title="清空编辑器">
+            <i class="icon ion-md-trash"></i>
+          </button>
+        </div>
+      </div>
+      <textarea id="markdown-editor" placeholder="在此粘贴或输入Markdown内容..."></textarea>
+    </section>
+
+    <!-- 结果面板（开始时隐藏） -->
+    <div id="result-panel" class="result-panel hidden">
+      <div class="result-header">
+        <h3>排版成功！</h3>
+        <button id="close-result-btn" class="icon-button" title="关闭">
+          <i class="icon ion-md-close"></i>
+        </button>
+      </div>
+      <div class="result-content">
+        <p>您的文章已生成，可以通过以下链接访问：</p>
+        <div class="result-url-container">
+          <a id="result-url" href="#" target="_blank"></a>
+        </div>
+        <div class="result-actions">
+          <button id="copy-url-btn" class="secondary-button">
+            <i class="icon ion-md-copy"></i>复制链接
+          </button>
+          <button id="view-source-btn" class="secondary-button">
+            <i class="icon ion-md-code"></i>查看源码
+          </button>
+          <button id="open-link-btn" class="secondary-button">
+            <i class="icon ion-md-open"></i>打开链接
+          </button>
+          <button id="create-new-btn" class="primary-button">
+            <i class="icon ion-md-add"></i>创建新排版
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 通知组件 -->
+  <div id="notification" class="notification hidden">
+    <i id="notification-icon" class="icon"></i>
+    <span id="notification-message"></span>
+  </div>
+
+  <!-- 加载动画 -->
+  <div id="loading-overlay" class="loading-overlay hidden" style="display: none !important;">
+    <div class="spinner"></div>
+    <p>生成中，请稍候...</p>
+  </div>
+
+  <!-- 关于模态框 -->
+  <div id="about-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="icon ion-md-flash"></i> 关于AI智能内容代理</h2>
+        <button id="close-about-btn" class="icon-button">
+          <i class="icon ion-md-close"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>AI智能内容代理是一个基于Cloudflare Workers的智能内容生成和渲染系统，集成Dify AI工作流，专为现代内容创作者打造。</p>
+        <h3>核心功能</h3>
+        <ul>
+          <li><strong>智能内容生成:</strong> 支持URL内容分析和AI文章生成工作流</li>
+          <li><strong>多模板渲染:</strong> 提供6种专业微信公众号模板</li>
+          <li><strong>自定义工作流:</strong> 支持用户配置自定义Dify工作流</li>
+          <li><strong>流式响应:</strong> 实时处理反馈和状态更新</li>
+          <li><strong>RESTful API:</strong> 完整的企业级API接口</li>
+          <li><strong>一键生成:</strong> 可分享的文章链接和HTML内容</li>
+        </ul>
+        <h3>技术特性</h3>
+        <ul>
+          <li>完全兼容微信编辑器约束的模板系统</li>
+          <li>支持Server-Sent Events流式响应</li>
+          <li>响应式界面设计，支持暗色/亮色主题切换</li>
+          <li>MCP协议兼容，易于集成其他系统</li>
+        </ul>
+        <h3>API认证</h3>
+        <p>使用测试API密钥：<code>aiwenchuang</code>，或联系管理员获取生产环境密钥。</p>
+        <p class="version-info">版本 1.0.0 | &copy; 2025 AI智能内容代理</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加自定义工作流模态框 -->
+  <div id="custom-workflow-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="icon ion-md-add"></i> 添加自定义工作流</h2>
+        <button id="close-custom-workflow-btn" class="icon-button">
+          <i class="icon ion-md-close"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="custom-workflow-form">
+          <div class="form-group">
+            <label for="workflow-id">工作流ID *</label>
+            <input type="text" id="workflow-id" placeholder="例如: my-custom-workflow" required>
+            <small>唯一标识符，只能包含字母、数字和连字符</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="workflow-name">工作流名称 *</label>
+            <input type="text" id="workflow-name" placeholder="例如: 我的自定义工作流" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="workflow-description">描述</label>
+            <textarea id="workflow-description" placeholder="工作流的功能描述..." rows="3"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="workflow-type">工作流类型 *</label>
+            <select id="workflow-type" required>
+              <option value="">请选择类型</option>
+              <option value="url">URL内容处理</option>
+              <option value="text">文本内容生成</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="workflow-api-key">Dify API密钥 *</label>
+            <input type="password" id="workflow-api-key" placeholder="app-xxxxxxxxxxxxxxxx" required>
+            <small>从Dify平台获取的工作流API密钥</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="workflow-icon">图标</label>
+            <select id="workflow-icon">
+              <option value="ion-md-cog">设置</option>
+              <option value="ion-md-globe">全球</option>
+              <option value="ion-md-document">文档</option>
+              <option value="ion-md-analytics">分析</option>
+              <option value="ion-md-create">创建</option>
+              <option value="ion-md-flask">实验</option>
+              <option value="ion-md-brush">画笔</option>
+              <option value="ion-md-rocket">火箭</option>
+            </select>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" id="cancel-workflow-btn" class="secondary-button">
+              <i class="icon ion-md-close"></i>取消
+            </button>
+            <button type="submit" id="save-workflow-btn" class="primary-button">
+              <i class="icon ion-md-checkmark"></i>添加工作流
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 源代码模态框 -->
+  <div id="source-modal" class="modal hidden">
+    <div class="modal-content source-modal-content">
+      <div class="modal-header">
+        <h2>HTML源代码</h2>
+        <button id="copy-source-btn" class="secondary-button">
+          <i class="icon ion-md-copy"></i>复制代码
+        </button>
+        <button id="close-source-btn" class="icon-button">
+          <i class="icon ion-md-close"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <pre id="source-code-display"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页脚区域 -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-columns">
+        <div class="footer-column">
+          <h3>产品</h3>
+          <ul>
+            <li><a href="#">功能介绍</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h3>资源</h3>
+          <ul>
+            <li><a href="/wiki">帮助中心</a></li>
+            <li><a href="/api-tester.html">API 测试工具</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h3>社区</h3>
+          <ul>
+            <li><a href="#">GitHub</a></li>
+            <li><a href="#">Twitter</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h3>联系</h3>
+          <ul>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <div class="footer-logo">
+          <i class="icon ion-md-flash"></i>
+          <span>AI 智能创作平台</span>
+        </div>
+        <div class="footer-copyright">
+          © 2025 AI 智能创作平台 | All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JavaScript -->
+  <script src="script.js?v=3"></script>
+</body>
+</html>

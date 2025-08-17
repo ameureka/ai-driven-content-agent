@@ -1,0 +1,54 @@
+{
+	"name": "ai-driven-content-agent",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"deploy:full": "./upload-to-r2.sh && npx wrangler@latest deploy",
+		"upload-assets": "./upload-to-r2.sh",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"build": "esbuild src/index.js --bundle --outfile=dist/worker.js --format=esm --external:fs --external:path"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.7.5",
+		"@playwright/test": "^1.54.2",
+		"esbuild": "^0.25.2",
+		"vitest": "~3.0.7",
+		"wrangler": "^4.7.2"
+	},
+	"dependencies": {
+		"eventsource": "^3.0.6",
+		"marked": "^15.0.8",
+		"node-fetch": "^2.7.0"
+	},
+	"description": "一个基于Cloudflare Workers的智能内容代理服务，集成Dify AI平台，提供Markdown到HTML的智能转换和多样化模板渲染功能",
+	"main": "src/index.js",
+	"directories": {
+		"test": "test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ameureka/ai-driven-content-agent.git"
+	},
+	"keywords": [
+		"ai",
+		"content-generation",
+		"cloudflare-workers",
+		"dify",
+		"markdown",
+		"html",
+		"template-engine",
+		"wechat",
+		"automation",
+		"api"
+	],
+	"author": "AI Content Agent Team",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/ameureka/ai-driven-content-agent/issues"
+	},
+	"homepage": "https://github.com/ameureka/ai-driven-content-agent#readme"
+}

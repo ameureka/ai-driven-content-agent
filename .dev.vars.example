@@ -1,0 +1,46 @@
+# 本地开发 API 密钥
+API_KEY=aiwenchuang
+
+# Dify AI 平台配置
+DIFY_API_KEY=app-psBss3DfbuPfQWGxxxx
+DIFY_ARTICLE_API_KEY=app-hOoVra3daEZxxxx
+DIFY_BASE_URL=https://api.dify.ai
+
+# 可选：调试模式
+DEBUG=true
+ENVIRONMENT=development
+
+# Worker 配置
+WORKER_NAME=ai-driven-content-agent
+WORKER_SUBDOMAIN=your-subdomain
+
+# 自定义工作流配置 (JSON格式)
+# 可以添加任意数量的自定义工作流
+CUSTOM_WORKFLOWS='{
+  "translate": {
+    "name": "智能翻译",
+    "description": "多语言智能翻译工作流",
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb",
+    "type": "url",
+    "inputFields": ["url", "targetLanguage"],
+    "icon": "ion-md-globe"
+  },
+  "summary": {
+    "name": "内容总结",
+    "description": "文档内容智能总结",
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb",
+    "type": "text",
+    "inputFields": ["title", "content", "style"],
+    "icon": "ion-md-document"
+  },
+  "analyze": {
+    "name": "数据分析",
+    "description": "数据分析和报告生成",
+    "apiKey": "app-WtjUwhBb1lL3bqmGV0A7C1Gb", 
+    "type": "url",
+    "inputFields": ["url"],
+    "icon": "ion-md-analytics"
+  }
+}'
+
+
